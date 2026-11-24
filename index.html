@@ -1,0 +1,2649 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🐸 3D Crossy Hopper · Voxel Arcade</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <style>
+        * {
+            box-sizing: border-box;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        body {
+            margin: 0;
+            overflow: hidden;
+            background: #1a2e1a;
+            font-family: 'Segoe UI', Roboto, system-ui, -apple-system, sans-serif;
+            touch-action: none;
+        }
+        #gameCanvas {
+            display: block;
+            width: 100vw;
+            height: 100vh;
+            cursor: pointer;
+        }
+
+        /* Flat, clean arcade HUD */
+        .hud-top {
+            position: fixed;
+            top: 12px;
+            left: 12px;
+            right: 12px;
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            pointer-events: none;
+            z-index: 10;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+        .hud-group {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            pointer-events: auto;
+            flex-wrap: wrap;
+        }
+        .pill {
+            background: rgba(15, 28, 18, 0.88);
+            backdrop-filter: blur(6px);
+            color: #f3fae6;
+            padding: 6px 13px;
+            border-radius: 999px;
+            font-weight: 800;
+            font-size: 0.92rem;
+            letter-spacing: 0.3px;
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            border: 2px solid rgba(255, 255, 255, 0.14);
+        }
+        .pill span.val {
+            color: #ffd54f;
+        }
+        .pill.coin-pill {
+            border-color: rgba(255, 213, 79, 0.45);
+        }
+        .btn-flat {
+            background: #e7b42e;
+            border: none;
+            color: #1c280d;
+            font-weight: 900;
+            font-size: 0.9rem;
+            padding: 7px 14px;
+            border-radius: 999px;
+            box-shadow: 0 4px 0 #8f6f1a;
+            cursor: pointer;
+            font-family: inherit;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: transform 0.06s ease, box-shadow 0.06s ease, background 0.15s;
+        }
+        .btn-flat:hover {
+            background: #f2c341;
+        }
+        .btn-flat:active {
+            transform: translateY(3px);
+            box-shadow: 0 1px 0 #8f6f1a;
+        }
+        .btn-icon {
+            background: rgba(15, 28, 18, 0.88);
+            color: #f3fae6;
+            border: 2px solid rgba(255, 255, 255, 0.15);
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+            padding: 6px 12px;
+        }
+        .btn-icon:hover {
+            background: rgba(32, 58, 38, 0.95);
+        }
+
+        /* Map Switcher Pills */
+        .map-switcher {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            background: rgba(15, 28, 18, 0.88);
+            backdrop-filter: blur(6px);
+            padding: 4px;
+            border-radius: 999px;
+            border: 2px solid rgba(255, 255, 255, 0.14);
+            box-shadow: 0 4px 0 rgba(0, 0, 0, 0.35);
+        }
+        .map-btn {
+            background: transparent;
+            border: none;
+            color: #d4e6cf;
+            font-family: inherit;
+            font-weight: 800;
+            font-size: 0.82rem;
+            padding: 5px 10px;
+            border-radius: 999px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.15s ease;
+            white-space: nowrap;
+        }
+        .map-btn:hover {
+            background: rgba(255, 255, 255, 0.12);
+            color: #fff;
+        }
+        .map-btn.active {
+            background: #4caf50;
+            color: #fff;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Character Selector / Unlock Bar */
+        .char-bar {
+            position: fixed;
+            bottom: 14px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(15, 28, 18, 0.92);
+            backdrop-filter: blur(8px);
+            padding: 7px 12px;
+            border-radius: 999px;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.55);
+            border: 2px solid rgba(255, 255, 255, 0.16);
+            z-index: 10;
+            max-width: calc(100vw - 20px);
+        }
+        .active-char-pill {
+            display: flex;
+            align-items: center;
+            gap: 7px;
+            padding: 5px 12px;
+            border-radius: 999px;
+            background: rgba(255, 255, 255, 0.08);
+            color: #f3fae6;
+            font-weight: 800;
+            font-size: 0.88rem;
+            white-space: nowrap;
+        }
+        .char-gallery-btn {
+            background: #4caf50;
+            border: 2px solid #c8f7c5;
+            border-radius: 999px;
+            padding: 6px 15px;
+            color: #ffffff;
+            font-weight: 900;
+            font-size: 0.88rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            white-space: nowrap;
+            box-shadow: 0 3px 0 #256029;
+            font-family: inherit;
+            transition: transform 0.08s ease, background 0.15s;
+        }
+        .char-gallery-btn:hover {
+            background: #5bc05f;
+            transform: translateY(-1px);
+        }
+        .char-gallery-btn:active {
+            transform: translateY(2px);
+            box-shadow: 0 1px 0 #256029;
+        }
+        .char-gallery-btn .unlock-badge {
+            background: rgba(0, 0, 0, 0.28);
+            padding: 1px 7px;
+            border-radius: 999px;
+            font-size: 0.78rem;
+            color: #ffd54f;
+        }
+        .quick-cycle-btn {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.16);
+            color: #e9f5d0;
+            border-radius: 999px;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            font-weight: 900;
+            font-size: 0.9rem;
+            transition: background 0.15s;
+        }
+        .quick-cycle-btn:hover {
+            background: rgba(255, 255, 255, 0.22);
+        }
+
+        /* Crossy Road Character Gallery Modal */
+        .gallery-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(8, 16, 10, 0.78);
+            backdrop-filter: blur(7px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 25;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            padding: 14px;
+        }
+        .gallery-overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .gallery-modal {
+            background: #172e1a;
+            border: 3px solid #5c9e5f;
+            border-radius: 26px;
+            width: 100%;
+            max-width: 760px;
+            max-height: 88vh;
+            display: flex;
+            flex-direction: column;
+            color: #f3fae6;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            overflow: hidden;
+            transform: scale(0.94);
+            transition: transform 0.2s cubic-bezier(0.2, 1.3, 0.4, 1);
+        }
+        .gallery-overlay.visible .gallery-modal {
+            transform: scale(1);
+        }
+        .gallery-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 14px 20px;
+            background: rgba(0, 0, 0, 0.25);
+            border-bottom: 2px solid rgba(255, 255, 255, 0.08);
+            gap: 10px;
+        }
+        .gallery-title {
+            font-size: 1.25rem;
+            font-weight: 900;
+            margin: 0;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #ffd54f;
+        }
+        .gallery-close {
+            background: rgba(255, 255, 255, 0.12);
+            border: none;
+            color: #fff;
+            width: 34px;
+            height: 34px;
+            border-radius: 999px;
+            font-size: 1.1rem;
+            font-weight: 900;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .gallery-close:hover {
+            background: #e74c3c;
+        }
+        .gallery-body {
+            display: grid;
+            grid-template-columns: 240px 1fr;
+            gap: 14px;
+            padding: 14px 18px;
+            overflow: hidden;
+            flex: 1;
+        }
+        .preview-pane {
+            background: radial-gradient(circle at 50% 40%, #2d5932 0%, #122414 100%);
+            border: 2px solid rgba(255, 255, 255, 0.12);
+            border-radius: 20px;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: space-between;
+            text-align: center;
+        }
+        #turntableCanvas {
+            width: 190px;
+            height: 170px;
+            border-radius: 14px;
+            display: block;
+        }
+        .preview-name {
+            font-size: 1.2rem;
+            font-weight: 900;
+            color: #fff;
+            margin: 4px 0 2px;
+        }
+        .preview-trait {
+            font-size: 0.78rem;
+            color: #a8d5a2;
+            font-weight: 700;
+            margin-bottom: 10px;
+            min-height: 2.2em;
+        }
+        .preview-action-btn {
+            width: 100%;
+            justify-content: center;
+            padding: 10px 14px;
+            font-size: 0.95rem;
+        }
+        .preview-action-btn.equipped {
+            background: #4caf50;
+            color: #fff;
+            box-shadow: 0 4px 0 #256029;
+        }
+        .preview-action-btn.locked-poor {
+            background: #49584a;
+            color: #b7c4b8;
+            box-shadow: 0 4px 0 #2a332b;
+        }
+        .roster-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(112px, 1fr));
+            gap: 8px;
+            overflow-y: auto;
+            padding-right: 4px;
+            align-content: start;
+        }
+        .roster-grid::-webkit-scrollbar {
+            width: 6px;
+        }
+        .roster-grid::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.22);
+            border-radius: 999px;
+        }
+        .roster-card {
+            background: rgba(255, 255, 255, 0.07);
+            border: 2px solid transparent;
+            border-radius: 16px;
+            padding: 9px 6px;
+            color: #e9f5d0;
+            font-family: inherit;
+            cursor: pointer;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 3px;
+            transition: transform 0.1s ease, background 0.15s, border-color 0.15s;
+        }
+        .roster-card:hover {
+            background: rgba(255, 255, 255, 0.14);
+            transform: translateY(-2px);
+        }
+        .roster-card.inspecting {
+            border-color: #ffd54f;
+            background: rgba(255, 213, 79, 0.14);
+        }
+        .roster-card.equipped {
+            border-color: #69f0ae;
+            background: rgba(76, 175, 80, 0.28);
+        }
+        .roster-card.locked {
+            opacity: 0.82;
+        }
+        .roster-card.locked.affordable {
+            border-color: rgba(255, 213, 79, 0.55);
+            opacity: 1;
+        }
+        .roster-emoji {
+            font-size: 1.7rem;
+            line-height: 1.1;
+        }
+        .roster-name {
+            font-size: 0.78rem;
+            font-weight: 800;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 100%;
+        }
+        .roster-status {
+            font-size: 0.7rem;
+            font-weight: 900;
+            padding: 1px 7px;
+            border-radius: 999px;
+            background: rgba(0, 0, 0, 0.3);
+            color: #a8d5a2;
+        }
+        .roster-card.locked .roster-status {
+            color: #ffd54f;
+        }
+        .roster-card.equipped .roster-status {
+            background: #4caf50;
+            color: #fff;
+        }
+
+        @keyframes shakeBtn {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-5px); }
+            50% { transform: translateX(5px); }
+            75% { transform: translateX(-4px); }
+        }
+        .shake {
+            animation: shakeBtn 0.28s ease;
+        }
+
+        /* Controls Hint */
+        .controls-hint {
+            position: fixed;
+            bottom: 70px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: rgba(255, 255, 255, 0.86);
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
+            pointer-events: none;
+            z-index: 9;
+            white-space: nowrap;
+        }
+
+        /* Toast Feedback Banner */
+        .toast {
+            position: fixed;
+            top: 64px;
+            left: 50%;
+            transform: translateX(-50%) translateY(-14px);
+            background: rgba(15, 28, 18, 0.92);
+            color: #ffd54f;
+            border: 2px solid rgba(255, 213, 79, 0.45);
+            padding: 8px 18px;
+            border-radius: 999px;
+            font-weight: 900;
+            font-size: 0.92rem;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.45);
+            opacity: 0;
+            pointer-events: none;
+            z-index: 20;
+            transition: opacity 0.2s ease, transform 0.2s ease;
+            white-space: nowrap;
+        }
+        .toast.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+        }
+
+        /* Game Over Modal Overlay */
+        .overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(8, 16, 10, 0.78);
+            backdrop-filter: blur(7px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 30;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s ease;
+            padding: 16px;
+        }
+        .overlay.visible {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .modal-card {
+            background: #172e1a;
+            border: 3px solid #5c9e5f;
+            border-radius: 26px;
+            padding: 24px 28px;
+            max-width: 380px;
+            width: 100%;
+            text-align: center;
+            color: #f3fae6;
+            box-shadow: 0 20px 50px rgba(0, 0, 0, 0.7);
+            transform: scale(0.92);
+            transition: transform 0.2s cubic-bezier(0.2, 1.3, 0.4, 1);
+        }
+        .overlay.visible .modal-card {
+            transform: scale(1);
+        }
+        .modal-emoji {
+            font-size: 3.4rem;
+            display: block;
+            margin-bottom: 6px;
+        }
+        .modal-title {
+            margin: 0 0 6px;
+            font-size: 1.65rem;
+            font-weight: 900;
+            color: #ffd54f;
+        }
+        .modal-sub {
+            margin: 0 0 18px;
+            font-size: 0.92rem;
+            color: #c8e6c9;
+            font-weight: 600;
+        }
+        .modal-stats {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+        .stat-box {
+            background: rgba(0, 0, 0, 0.28);
+            border-radius: 14px;
+            padding: 10px 6px;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+        }
+        .stat-label {
+            font-size: 0.72rem;
+            text-transform: uppercase;
+            color: #a8d5a2;
+            font-weight: 800;
+            letter-spacing: 0.5px;
+        }
+        .stat-num {
+            font-size: 1.25rem;
+            font-weight: 900;
+            color: #ffd54f;
+            margin-top: 2px;
+        }
+        .modal-btn {
+            width: 100%;
+            justify-content: center;
+            padding: 12px 18px;
+            font-size: 1.05rem;
+        }
+
+        @media (max-width: 720px) {
+            .pill {
+                padding: 5px 10px;
+                font-size: 0.82rem;
+            }
+            .btn-flat {
+                padding: 6px 11px;
+                font-size: 0.82rem;
+            }
+            .map-btn {
+                padding: 4px 8px;
+                font-size: 0.76rem;
+            }
+            .controls-hint {
+                bottom: 64px;
+                font-size: 0.72rem;
+            }
+            .gallery-body {
+                grid-template-columns: 1fr;
+                grid-template-rows: auto 1fr;
+                padding: 10px 12px;
+                gap: 10px;
+            }
+            .preview-pane {
+                flex-direction: row;
+                text-align: left;
+                padding: 8px 12px;
+                gap: 12px;
+            }
+            #turntableCanvas {
+                width: 110px;
+                height: 100px;
+                flex-shrink: 0;
+            }
+            .preview-info-col {
+                flex: 1;
+                min-width: 0;
+            }
+            .preview-trait {
+                min-height: auto;
+                margin-bottom: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<canvas id="gameCanvas"></canvas>
+
+<!-- Top HUD -->
+<div class="hud-top">
+    <div class="hud-group">
+        <div class="pill" title="Lives">
+            <span id="livesDisplay">❤️❤️❤️</span>
+        </div>
+        <div class="pill" title="Score">
+            🏆 <span class="val" id="scoreDisplay">0</span>
+        </div>
+        <div class="pill" title="Best Score">
+            👑 <span class="val" id="bestDisplay">0</span>
+        </div>
+        <div class="pill coin-pill" title="Coin Bank (Unlock Characters)">
+            🪙 <span class="val" id="coinDisplay">20</span>
+        </div>
+        <div class="pill" title="Stage">
+            🚩 <span class="val" id="stageDisplay">1</span>
+        </div>
+    </div>
+
+    <div class="hud-group">
+        <div class="map-switcher" id="mapSwitcher" title="Switch World Map"></div>
+        <button class="btn-flat btn-icon" id="muteButton" title="Toggle Sound">🔊</button>
+        <button class="btn-flat" id="restartButton">↻ RESTART</button>
+    </div>
+</div>
+
+<!-- Toast Feedback -->
+<div class="toast" id="toastMsg">Stage Clear! +100</div>
+
+<!-- Controls Hint -->
+<div class="controls-hint">Tap / Swipe or Arrows / WASD · Collect 🪙 Coins to Unlock 20 Voxel Heroes!</div>
+
+<!-- Bottom Compact Character Bar -->
+<div class="char-bar" id="charBar">
+    <button class="quick-cycle-btn" id="prevCharBtn" title="Previous Unlocked Hero">◀</button>
+    <div class="active-char-pill" id="activeCharPill">
+        <span id="activeCharEmoji">🐔</span>
+        <span id="activeCharName">Chicken</span>
+    </div>
+    <button class="quick-cycle-btn" id="nextCharBtn" title="Next Unlocked Hero">▶</button>
+    <button class="char-gallery-btn" id="openGalleryBtn">
+        <span>🎭 CHARACTERS</span>
+        <span class="unlock-badge" id="unlockCountBadge">2/20</span>
+    </button>
+</div>
+
+<!-- Crossy Road Character Gallery & 3D Turntable Modal -->
+<div class="gallery-overlay" id="galleryOverlay">
+    <div class="gallery-modal">
+        <div class="gallery-header">
+            <h2 class="gallery-title">🎭 VOXEL HEROES <span style="font-size:0.85rem;color:#a8d5a2;" id="galleryUnlockStat">(2/20 Unlocked)</span></h2>
+            <div style="display:flex;align-items:center;gap:10px;">
+                <div class="pill coin-pill" style="padding:4px 12px;font-size:0.88rem;">
+                    🪙 <span class="val" id="galleryCoinVal">20</span>
+                </div>
+                <button class="gallery-close" id="closeGalleryBtn" title="Close">✕</button>
+            </div>
+        </div>
+        <div class="gallery-body">
+            <div class="preview-pane">
+                <canvas id="turntableCanvas" width="380" height="340"></canvas>
+                <div class="preview-info-col">
+                    <div class="preview-name" id="previewName">🐔 Chicken</div>
+                    <div class="preview-trait" id="previewTrait">Classic Crossy Road Hero · Feather Hop Trail</div>
+                    <button class="btn-flat preview-action-btn equipped" id="previewActionBtn">✓ EQUIPPED</button>
+                </div>
+            </div>
+            <div class="roster-grid" id="rosterGrid"></div>
+        </div>
+    </div>
+</div>
+
+<!-- Game Over Modal -->
+<div class="overlay" id="gameOverlay">
+    <div class="modal-card">
+        <span class="modal-emoji" id="modalEmoji">💥</span>
+        <h2 class="modal-title" id="modalTitle">SQUASHED!</h2>
+        <p class="modal-sub" id="modalSub">Watch out for traffic and hazards!</p>
+        <div class="modal-stats">
+            <div class="stat-box">
+                <div class="stat-label">Score</div>
+                <div class="stat-num" id="modalScore">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Best</div>
+                <div class="stat-num" id="modalBest">0</div>
+            </div>
+            <div class="stat-box">
+                <div class="stat-label">Coins</div>
+                <div class="stat-num" id="modalCoins">0</div>
+            </div>
+        </div>
+        <button class="btn-flat modal-btn" id="modalActionBtn">↻ PLAY AGAIN</button>
+    </div>
+</div>
+
+<script>
+(function() {
+    'use strict';
+
+    // =========================================================================
+    // 1. SYNTHESIZED WEB AUDIO SOUND ENGINE
+    // =========================================================================
+    const sound = {
+        ctx: null,
+        muted: false,
+        init() {
+            if (!this.ctx) {
+                const AudioCtx = window.AudioContext || window.webkitAudioContext;
+                if (AudioCtx) this.ctx = new AudioCtx();
+            }
+            if (this.ctx && this.ctx.state === 'suspended') {
+                this.ctx.resume();
+            }
+        },
+        toggleMute() {
+            this.muted = !this.muted;
+            return this.muted;
+        },
+        tone(freq, endFreq, duration, type = 'sine', gainVal = 0.14, delay = 0) {
+            if (this.muted || !this.ctx) return;
+            try {
+                const now = this.ctx.currentTime + delay;
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+                osc.type = type;
+                osc.frequency.setValueAtTime(freq, now);
+                if (endFreq && endFreq !== freq) {
+                    osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), now + duration);
+                }
+                gain.gain.setValueAtTime(0.001, now);
+                gain.gain.linearRampToValueAtTime(gainVal, now + 0.01);
+                gain.gain.exponentialRampToValueAtTime(0.001, now + duration);
+                osc.connect(gain);
+                gain.connect(this.ctx.destination);
+                osc.start(now);
+                osc.stop(now + duration + 0.02);
+            } catch (e) {}
+        },
+        playHop(pitch = 1.0) {
+            this.tone(260 * pitch, 520 * pitch, 0.11, 'triangle', 0.13);
+        },
+        playCoin() {
+            this.tone(987.77, 987.77, 0.07, 'sine', 0.14, 0);
+            this.tone(1318.51, 1318.51, 0.16, 'sine', 0.14, 0.06);
+        },
+        playSplash() {
+            this.tone(300, 75, 0.28, 'sawtooth', 0.15);
+            this.tone(180, 50, 0.32, 'triangle', 0.16, 0.04);
+        },
+        playCrash() {
+            this.tone(150, 38, 0.30, 'sawtooth', 0.18);
+            this.tone(95, 32, 0.34, 'square', 0.14);
+        },
+        playGoal() {
+            this.tone(523.25, 523.25, 0.10, 'triangle', 0.16, 0);
+            this.tone(659.25, 659.25, 0.10, 'triangle', 0.16, 0.09);
+            this.tone(783.99, 783.99, 0.12, 'triangle', 0.16, 0.18);
+            this.tone(1046.50, 1046.50, 0.28, 'triangle', 0.18, 0.27);
+        },
+        playUnlock() {
+            this.tone(587.33, 587.33, 0.09, 'sine', 0.16, 0);
+            this.tone(880, 880, 0.09, 'sine', 0.16, 0.08);
+            this.tone(1174.66, 1174.66, 0.24, 'triangle', 0.18, 0.16);
+        },
+        playError() {
+            this.tone(190, 140, 0.16, 'sawtooth', 0.12);
+        }
+    };
+
+    // =========================================================================
+    // 2. 20 AUTHENTIC CROSSY ROAD BLOCKY VOXEL CHARACTERS
+    // =========================================================================
+    const CHARACTERS = [
+        { id: 'chicken', name: 'Chicken', emoji: '🐔', cost: 0, pitch: 1.25, trait: 'Classic Crossy Hero · Feather Dust', trail: 'feathers', build: buildChickenMesh },
+        { id: 'frog', name: 'Frog', emoji: '🐸', cost: 0, pitch: 1.0, trait: 'Pond Hopper · Lilypad Splash', trail: 'water', build: buildFrogMesh },
+        { id: 'mallard', name: 'Mallard', emoji: '🦆', cost: 25, pitch: 1.18, trait: 'River Duck · Water Droplets', trail: 'water', build: buildMallardMesh },
+        { id: 'piggy', name: 'Piggy', emoji: '🐷', cost: 40, pitch: 0.96, trait: 'Barnyard Pal · Muddy Hoofprints', trail: 'mud', build: buildPiggyMesh },
+        { id: 'pug', name: 'Pug', emoji: '🐶', cost: 55, pitch: 1.12, trait: 'Happy Pup · Heart Puffs', trail: 'hearts', build: buildPugMesh },
+        { id: 'cat', name: 'Tabby Cat', emoji: '🐱', cost: 70, pitch: 1.28, trait: 'Alley Cat · Paw Sparks', trail: 'music', build: buildCatMesh },
+        { id: 'penguin', name: 'Penguin', emoji: '🐧', cost: 90, pitch: 1.16, trait: 'Arctic Waddle · Snowflake Trail', trail: 'snow', build: buildPenguinMesh },
+        { id: 'fox', name: 'Fox', emoji: '🦊', cost: 110, pitch: 1.1, trait: 'Forest Dash · Autumn Leaves', trail: 'leaves', build: buildFoxMesh },
+        { id: 'panda', name: 'Panda', emoji: '🐼', cost: 130, pitch: 0.92, trait: 'Bamboo Muncher · Leaf Flurry', trail: 'bamboo', build: buildPandaMesh },
+        { id: 'koala', name: 'Koala', emoji: '🐨', cost: 150, pitch: 1.05, trait: 'Eucalyptus Napper · Sleepy Zzz', trail: 'music', build: buildKoalaMesh },
+        { id: 'tiger', name: 'Tiger', emoji: '🐯', cost: 175, pitch: 0.88, trait: 'Jungle Prowler · Gold Sparks', trail: 'gold', build: buildTigerMesh },
+        { id: 'cow', name: 'Cow', emoji: '🐮', cost: 200, pitch: 0.84, trait: 'Pasture Bell · Clover Trail', trail: 'leaves', build: buildCowMesh },
+        { id: 'crab', name: 'Crab', emoji: '🦀', cost: 230, pitch: 1.32, trait: 'Beach Scuttler · Bubble Pop', trail: 'bubbles', build: buildCrabMesh },
+        { id: 'trex', name: 'T-Rex', emoji: '🦖', cost: 260, pitch: 0.68, trait: 'Dino Stomp · Seismic Dust', trail: 'stomp', build: buildTRexMesh },
+        { id: 'robo', name: 'Rusty Robot', emoji: '🤖', cost: 300, pitch: 0.78, trait: 'Mecha Unit · Exhaust & Bolts', trail: 'exhaust', build: buildRoboMesh },
+        { id: 'unicorn', name: 'Unicorn', emoji: '🦄', cost: 350, pitch: 1.35, trait: 'Mythic Steed · Rainbow Trail', trail: 'rainbow', build: buildUnicornMesh },
+        { id: 'ghost', name: 'Spooky Ghost', emoji: '👻', cost: 400, pitch: 1.4, trait: 'Ectoplasm Float · Spectral Mist', trail: 'ecto', build: buildGhostMesh },
+        { id: 'ninja', name: 'Ninja', emoji: '🥷', cost: 450, pitch: 1.22, trait: 'Shadow Shinobi · Smoke Bombs', trail: 'smoke', build: buildNinjaMesh },
+        { id: 'dragon', name: 'Dragon', emoji: '🐉', cost: 520, pitch: 0.72, trait: 'Ember Wyrm · Fire Sparks', trail: 'fire', build: buildDragonMesh },
+        { id: 'kingfrog', name: 'King Frog', emoji: '👑', cost: 600, pitch: 0.95, trait: 'Royal Monarch · Golden Aura', trail: 'royal', build: buildKingFrogMesh }
+    ];
+
+    function makeMat(color, roughness = 0.55, metalness = 0.05) {
+        return new THREE.MeshStandardMaterial({ color, roughness, metalness });
+    }
+
+    function addVoxel(group, w, h, d, x, y, z, mat) {
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        mesh.position.set(x, y, z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        group.add(mesh);
+        return mesh;
+    }
+
+    // Helper: creates an articulated limb pivot so feet/legs alternate during hops
+    function addLimb(group, w, h, d, x, y, z, mat, sideTag) {
+        const pivot = new THREE.Group();
+        pivot.position.set(x, y, z);
+        const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), mat);
+        mesh.position.set(0, -h / 2, 0);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        pivot.add(mesh);
+        group.add(pivot);
+        if (!group.userData.limbs) group.userData.limbs = [];
+        group.userData.limbs.push({ pivot, side: sideTag });
+        return pivot;
+    }
+
+    // 1. Classic Crossy Road Chicken (Free Starter)
+    function buildChickenMesh() {
+        const g = new THREE.Group();
+        const white = makeMat(0xffffff);
+        const red = makeMat(0xe84118);
+        const orange = makeMat(0xff9f1a);
+        const black = makeMat(0x111111);
+
+        // Blocky orange legs + toes
+        addLimb(g, 0.08, 0.22, 0.08, -0.14, 0.22, 0.02, orange, -1);
+        addLimb(g, 0.08, 0.22, 0.08, 0.14, 0.22, 0.02, orange, 1);
+        addVoxel(g, 0.16, 0.05, 0.22, -0.14, 0.025, 0.06, orange);
+        addVoxel(g, 0.16, 0.05, 0.22, 0.14, 0.025, 0.06, orange);
+
+        // Iconic tall blocky white body-head column
+        addVoxel(g, 0.56, 0.74, 0.62, 0, 0.58, 0, white);
+        // Side wings
+        addVoxel(g, 0.10, 0.34, 0.38, -0.33, 0.48, -0.02, white);
+        addVoxel(g, 0.10, 0.34, 0.38, 0.33, 0.48, -0.02, white);
+        // Blocky tail feathers
+        addVoxel(g, 0.26, 0.24, 0.18, 0, 0.48, -0.36, white);
+        // Red comb on top
+        addVoxel(g, 0.12, 0.18, 0.34, 0, 1.03, 0.04, red);
+        // Protruding orange beak + red wattle
+        addVoxel(g, 0.20, 0.14, 0.22, 0, 0.72, 0.38, orange);
+        addVoxel(g, 0.12, 0.14, 0.12, 0, 0.58, 0.34, red);
+        // Side-mounted voxel eyes
+        addVoxel(g, 0.05, 0.09, 0.09, -0.29, 0.78, 0.14, black);
+        addVoxel(g, 0.05, 0.09, 0.09, 0.29, 0.78, 0.14, black);
+        return g;
+    }
+
+    // 2. Classic Blocky Frog (Free Starter)
+    function buildFrogMesh() {
+        const g = new THREE.Group();
+        const green = makeMat(0x4cd137);
+        const darkGreen = makeMat(0x44bd32);
+        const belly = makeMat(0xdff9fb);
+        const white = makeMat(0xffffff);
+        const black = makeMat(0x111111);
+        const cheek = makeMat(0xff7675);
+
+        // Webbed side legs
+        addLimb(g, 0.20, 0.22, 0.32, -0.38, 0.22, -0.08, darkGreen, -1);
+        addLimb(g, 0.20, 0.22, 0.32, 0.38, 0.22, -0.08, darkGreen, 1);
+        addVoxel(g, 0.16, 0.22, 0.20, -0.32, 0.11, 0.22, green);
+        addVoxel(g, 0.16, 0.22, 0.20, 0.32, 0.11, 0.22, green);
+
+        // Wide blocky torso & pale belly
+        addVoxel(g, 0.74, 0.44, 0.68, 0, 0.28, 0, green);
+        addVoxel(g, 0.58, 0.14, 0.56, 0, 0.14, 0.05, belly);
+        // Wide mouth line
+        addVoxel(g, 0.66, 0.05, 0.06, 0, 0.28, 0.34, darkGreen);
+
+        // Top-mounted blocky eye turrets
+        addVoxel(g, 0.24, 0.24, 0.22, -0.21, 0.58, 0.16, green);
+        addVoxel(g, 0.24, 0.24, 0.22, 0.21, 0.58, 0.16, green);
+        addVoxel(g, 0.16, 0.16, 0.06, -0.21, 0.59, 0.26, white);
+        addVoxel(g, 0.16, 0.16, 0.06, 0.21, 0.59, 0.26, white);
+        addVoxel(g, 0.08, 0.08, 0.04, -0.21, 0.59, 0.29, black);
+        addVoxel(g, 0.08, 0.08, 0.04, 0.21, 0.59, 0.29, black);
+        addVoxel(g, 0.14, 0.08, 0.05, -0.28, 0.34, 0.34, cheek);
+        addVoxel(g, 0.14, 0.08, 0.05, 0.28, 0.34, 0.34, cheek);
+        return g;
+    }
+
+    // 3. Mallard Duck (25 Coins)
+    function buildMallardMesh() {
+        const g = new THREE.Group();
+        const emeraldHead = makeMat(0x009432);
+        const brownBody = makeMat(0x795548);
+        const whiteRing = makeMat(0xffffff);
+        const yellowBill = makeMat(0xffc312);
+        const orangeFeet = makeMat(0xff9f1a);
+        const black = makeMat(0x111111);
+
+        addLimb(g, 0.10, 0.20, 0.14, -0.15, 0.20, 0.02, orangeFeet, -1);
+        addLimb(g, 0.10, 0.20, 0.14, 0.15, 0.20, 0.02, orangeFeet, 1);
+        // Plump brown body + tail
+        addVoxel(g, 0.58, 0.42, 0.68, 0, 0.38, -0.02, brownBody);
+        addVoxel(g, 0.28, 0.20, 0.22, 0, 0.44, -0.40, whiteRing);
+        // White collar ring
+        addVoxel(g, 0.48, 0.08, 0.48, 0, 0.62, 0.08, whiteRing);
+        // Emerald green voxel head + flat yellow bill
+        addVoxel(g, 0.46, 0.36, 0.46, 0, 0.82, 0.08, emeraldHead);
+        addVoxel(g, 0.30, 0.10, 0.28, 0, 0.74, 0.40, yellowBill);
+        addVoxel(g, 0.05, 0.08, 0.08, -0.24, 0.86, 0.16, black);
+        addVoxel(g, 0.05, 0.08, 0.08, 0.24, 0.86, 0.16, black);
+        return g;
+    }
+
+    // 4. Piggy (40 Coins)
+    function buildPiggyMesh() {
+        const g = new THREE.Group();
+        const pink = makeMat(0xff9ff3);
+        const snoutPink = makeMat(0xf368e0);
+        const dark = makeMat(0x222f3e);
+
+        addLimb(g, 0.16, 0.18, 0.16, -0.20, 0.18, 0.20, pink, -1);
+        addLimb(g, 0.16, 0.18, 0.16, 0.20, 0.18, 0.20, pink, 1);
+        addVoxel(g, 0.16, 0.18, 0.16, -0.20, 0.09, -0.20, pink);
+        addVoxel(g, 0.16, 0.18, 0.16, 0.20, 0.09, -0.20, pink);
+
+        // Chubby blocky pig body
+        addVoxel(g, 0.66, 0.56, 0.72, 0, 0.44, 0, pink);
+        // Flat snout + two nostrils
+        addVoxel(g, 0.34, 0.22, 0.14, 0, 0.42, 0.40, snoutPink);
+        addVoxel(g, 0.06, 0.08, 0.04, -0.08, 0.42, 0.47, dark);
+        addVoxel(g, 0.06, 0.08, 0.04, 0.08, 0.42, 0.47, dark);
+        // Floppy ears + curly tail
+        addVoxel(g, 0.16, 0.16, 0.12, -0.24, 0.76, 0.16, snoutPink);
+        addVoxel(g, 0.16, 0.16, 0.12, 0.24, 0.76, 0.16, snoutPink);
+        addVoxel(g, 0.12, 0.16, 0.14, 0, 0.48, -0.40, snoutPink);
+        // Eyes
+        addVoxel(g, 0.07, 0.09, 0.05, -0.20, 0.56, 0.36, dark);
+        addVoxel(g, 0.07, 0.09, 0.05, 0.20, 0.56, 0.36, dark);
+        return g;
+    }
+
+    // 5. Pug (55 Coins)
+    function buildPugMesh() {
+        const g = new THREE.Group();
+        const fawn = makeMat(0xeccc68);
+        const darkBrown = makeMat(0x3d2b1f);
+        const tongue = makeMat(0xff6b81);
+        const black = makeMat(0x111111);
+
+        addLimb(g, 0.16, 0.18, 0.16, -0.18, 0.18, 0.20, fawn, -1);
+        addLimb(g, 0.16, 0.18, 0.16, 0.18, 0.18, 0.20, fawn, 1);
+        addVoxel(g, 0.16, 0.18, 0.16, -0.18, 0.09, -0.18, fawn);
+        addVoxel(g, 0.16, 0.18, 0.16, 0.18, 0.09, -0.18, fawn);
+
+        addVoxel(g, 0.56, 0.42, 0.62, 0, 0.36, 0, fawn);
+        // Big square pug head
+        addVoxel(g, 0.62, 0.50, 0.54, 0, 0.72, 0.08, fawn);
+        // Dark wrinkly muzzle + pink tongue
+        addVoxel(g, 0.36, 0.24, 0.14, 0, 0.64, 0.38, darkBrown);
+        addVoxel(g, 0.12, 0.12, 0.08, 0.06, 0.52, 0.40, tongue);
+        // Folded dark ears & curled tail
+        addVoxel(g, 0.18, 0.20, 0.14, -0.32, 0.88, 0.10, darkBrown);
+        addVoxel(g, 0.18, 0.20, 0.14, 0.32, 0.88, 0.10, darkBrown);
+        addVoxel(g, 0.14, 0.18, 0.16, 0, 0.54, -0.34, fawn);
+        // Big round pug eyes
+        addVoxel(g, 0.10, 0.10, 0.05, -0.20, 0.78, 0.35, black);
+        addVoxel(g, 0.10, 0.10, 0.05, 0.20, 0.78, 0.35, black);
+        return g;
+    }
+
+    // 6. Tabby Cat (70 Coins)
+    function buildCatMesh() {
+        const g = new THREE.Group();
+        const ginger = makeMat(0xff9f43);
+        const stripe = makeMat(0xee5253);
+        const cream = makeMat(0xfff2e6);
+        const pink = makeMat(0xff9ff3);
+        const dark = makeMat(0x222f3e);
+
+        addLimb(g, 0.14, 0.18, 0.16, -0.18, 0.18, 0.20, cream, -1);
+        addLimb(g, 0.14, 0.18, 0.16, 0.18, 0.18, 0.20, cream, 1);
+        addVoxel(g, 0.14, 0.18, 0.16, -0.18, 0.09, -0.18, cream);
+        addVoxel(g, 0.14, 0.18, 0.16, 0.18, 0.09, -0.18, cream);
+
+        addVoxel(g, 0.54, 0.40, 0.62, 0, 0.35, 0, ginger);
+        addVoxel(g, 0.58, 0.10, 0.12, 0, 0.44, -0.08, stripe);
+        addVoxel(g, 0.62, 0.46, 0.50, 0, 0.72, 0.06, ginger);
+        // Pointy cat ears
+        addVoxel(g, 0.16, 0.22, 0.12, -0.22, 1.02, 0.06, ginger);
+        addVoxel(g, 0.16, 0.22, 0.12, 0.22, 1.02, 0.06, ginger);
+        // Muzzle, pink nose & eyes
+        addVoxel(g, 0.30, 0.16, 0.10, 0, 0.64, 0.32, cream);
+        addVoxel(g, 0.10, 0.07, 0.06, 0, 0.68, 0.36, pink);
+        addVoxel(g, 0.07, 0.10, 0.05, -0.18, 0.76, 0.31, dark);
+        addVoxel(g, 0.07, 0.10, 0.05, 0.18, 0.76, 0.31, dark);
+        // Upright striped tail
+        addVoxel(g, 0.12, 0.46, 0.12, 0, 0.56, -0.34, ginger);
+        addVoxel(g, 0.14, 0.12, 0.14, 0, 0.78, -0.34, cream);
+        return g;
+    }
+
+    // 7. Penguin (90 Coins)
+    function buildPenguinMesh() {
+        const g = new THREE.Group();
+        const navy = makeMat(0x2c3e50);
+        const white = makeMat(0xffffff);
+        const gold = makeMat(0xf39c12);
+        const black = makeMat(0x000000);
+
+        addLimb(g, 0.20, 0.12, 0.28, -0.16, 0.12, 0.06, gold, -1);
+        addLimb(g, 0.20, 0.12, 0.28, 0.16, 0.12, 0.06, gold, 1);
+        addVoxel(g, 0.58, 0.74, 0.54, 0, 0.46, 0, navy);
+        addVoxel(g, 0.42, 0.56, 0.08, 0, 0.42, 0.26, white);
+        addVoxel(g, 0.10, 0.42, 0.24, -0.34, 0.44, 0, navy);
+        addVoxel(g, 0.10, 0.42, 0.24, 0.34, 0.44, 0, navy);
+        addVoxel(g, 0.20, 0.12, 0.20, 0, 0.66, 0.34, gold);
+        addVoxel(g, 0.08, 0.08, 0.06, -0.16, 0.74, 0.27, white);
+        addVoxel(g, 0.08, 0.08, 0.06, 0.16, 0.74, 0.27, white);
+        addVoxel(g, 0.04, 0.04, 0.04, -0.16, 0.74, 0.29, black);
+        addVoxel(g, 0.04, 0.04, 0.04, 0.16, 0.74, 0.29, black);
+        return g;
+    }
+
+    // 8. Fox (110 Coins)
+    function buildFoxMesh() {
+        const g = new THREE.Group();
+        const orange = makeMat(0xe67e22);
+        const cream = makeMat(0xfdf2e9);
+        const dark = makeMat(0x2c3e50);
+
+        addLimb(g, 0.16, 0.16, 0.18, -0.20, 0.16, 0.18, dark, -1);
+        addLimb(g, 0.16, 0.16, 0.18, 0.20, 0.16, 0.18, dark, 1);
+        addVoxel(g, 0.16, 0.16, 0.18, -0.20, 0.08, -0.18, dark);
+        addVoxel(g, 0.16, 0.16, 0.18, 0.20, 0.08, -0.18, dark);
+        addVoxel(g, 0.56, 0.42, 0.64, 0, 0.34, -0.02, orange);
+        addVoxel(g, 0.42, 0.32, 0.12, 0, 0.32, 0.30, cream);
+        addVoxel(g, 0.64, 0.46, 0.54, 0, 0.72, 0.06, orange);
+        addVoxel(g, 0.32, 0.22, 0.24, 0, 0.62, 0.40, cream);
+        addVoxel(g, 0.12, 0.10, 0.08, 0, 0.68, 0.52, dark);
+        addVoxel(g, 0.16, 0.24, 0.12, -0.22, 1.04, 0.02, orange);
+        addVoxel(g, 0.16, 0.24, 0.12, 0.22, 1.04, 0.02, orange);
+        addVoxel(g, 0.08, 0.08, 0.05, -0.18, 0.76, 0.34, dark);
+        addVoxel(g, 0.08, 0.08, 0.05, 0.18, 0.76, 0.34, dark);
+        addVoxel(g, 0.26, 0.26, 0.38, 0, 0.34, -0.46, orange);
+        addVoxel(g, 0.22, 0.22, 0.16, 0, 0.38, -0.68, cream);
+        return g;
+    }
+
+    // 9. Panda (130 Coins)
+    function buildPandaMesh() {
+        const g = new THREE.Group();
+        const white = makeMat(0xf5f6fa);
+        const black = makeMat(0x1e272e);
+        const bamboo = makeMat(0x7bed9f);
+
+        addLimb(g, 0.18, 0.18, 0.20, -0.20, 0.18, 0.18, black, -1);
+        addLimb(g, 0.18, 0.18, 0.20, 0.20, 0.18, 0.18, black, 1);
+        addVoxel(g, 0.18, 0.18, 0.20, -0.20, 0.09, -0.18, black);
+        addVoxel(g, 0.18, 0.18, 0.20, 0.20, 0.09, -0.18, black);
+        addVoxel(g, 0.64, 0.46, 0.62, 0, 0.38, 0, white);
+        addVoxel(g, 0.68, 0.20, 0.30, 0, 0.48, 0.12, black);
+        addVoxel(g, 0.66, 0.50, 0.56, 0, 0.82, 0.06, white);
+        addVoxel(g, 0.20, 0.20, 0.12, -0.26, 1.12, 0.04, black);
+        addVoxel(g, 0.20, 0.20, 0.12, 0.26, 1.12, 0.04, black);
+        addVoxel(g, 0.18, 0.16, 0.06, -0.16, 0.84, 0.34, black);
+        addVoxel(g, 0.18, 0.16, 0.06, 0.16, 0.84, 0.34, black);
+        addVoxel(g, 0.06, 0.06, 0.04, -0.16, 0.85, 0.36, white);
+        addVoxel(g, 0.06, 0.06, 0.04, 0.16, 0.85, 0.36, white);
+        addVoxel(g, 0.12, 0.08, 0.08, 0, 0.72, 0.36, black);
+        addVoxel(g, 0.08, 0.48, 0.08, 0.38, 0.48, 0.24, bamboo);
+        return g;
+    }
+
+    // 10. Koala (150 Coins)
+    function buildKoalaMesh() {
+        const g = new THREE.Group();
+        const furGrey = makeMat(0x95a5a6);
+        const lightBelly = makeMat(0xecf0f1);
+        const bigNose = makeMat(0x1e272e);
+
+        addLimb(g, 0.18, 0.18, 0.20, -0.20, 0.18, 0.16, furGrey, -1);
+        addLimb(g, 0.18, 0.18, 0.20, 0.20, 0.18, 0.16, furGrey, 1);
+        addVoxel(g, 0.60, 0.46, 0.56, 0, 0.38, 0, furGrey);
+        addVoxel(g, 0.40, 0.34, 0.08, 0, 0.36, 0.28, lightBelly);
+        // Wide koala head + big fluffy round ears
+        addVoxel(g, 0.66, 0.48, 0.54, 0, 0.80, 0.04, furGrey);
+        addVoxel(g, 0.28, 0.30, 0.14, -0.40, 0.88, 0.02, furGrey);
+        addVoxel(g, 0.28, 0.30, 0.14, 0.40, 0.88, 0.02, furGrey);
+        addVoxel(g, 0.16, 0.18, 0.06, -0.38, 0.88, 0.08, lightBelly);
+        addVoxel(g, 0.16, 0.18, 0.06, 0.38, 0.88, 0.08, lightBelly);
+        // Iconic large black oval nose
+        addVoxel(g, 0.20, 0.24, 0.14, 0, 0.76, 0.34, bigNose);
+        addVoxel(g, 0.07, 0.08, 0.05, -0.20, 0.84, 0.31, bigNose);
+        addVoxel(g, 0.07, 0.08, 0.05, 0.20, 0.84, 0.31, bigNose);
+        return g;
+    }
+
+    // 11. Tiger (175 Coins)
+    function buildTigerMesh() {
+        const g = new THREE.Group();
+        const goldOrange = makeMat(0xff9f1a);
+        const stripe = makeMat(0x1e272e);
+        const cream = makeMat(0xfff2d6);
+
+        addLimb(g, 0.16, 0.18, 0.18, -0.20, 0.18, 0.20, cream, -1);
+        addLimb(g, 0.16, 0.18, 0.18, 0.20, 0.18, 0.20, cream, 1);
+        addVoxel(g, 0.16, 0.18, 0.18, -0.20, 0.09, -0.20, cream);
+        addVoxel(g, 0.16, 0.18, 0.18, 0.20, 0.09, -0.20, cream);
+        addVoxel(g, 0.58, 0.42, 0.68, 0, 0.36, 0, goldOrange);
+        addVoxel(g, 0.62, 0.10, 0.12, 0, 0.46, -0.10, stripe);
+        addVoxel(g, 0.62, 0.10, 0.12, 0, 0.46, 0.12, stripe);
+        addVoxel(g, 0.66, 0.48, 0.54, 0, 0.74, 0.08, goldOrange);
+        addVoxel(g, 0.34, 0.22, 0.20, 0, 0.64, 0.40, cream);
+        addVoxel(g, 0.14, 0.10, 0.08, 0, 0.70, 0.50, stripe);
+        addVoxel(g, 0.76, 0.20, 0.24, 0, 0.68, 0.10, cream);
+        addVoxel(g, 0.18, 0.16, 0.10, -0.24, 1.02, 0.06, goldOrange);
+        addVoxel(g, 0.18, 0.16, 0.10, 0.24, 1.02, 0.06, goldOrange);
+        addVoxel(g, 0.08, 0.08, 0.05, -0.18, 0.80, 0.35, stripe);
+        addVoxel(g, 0.08, 0.08, 0.05, 0.18, 0.80, 0.35, stripe);
+        addVoxel(g, 0.14, 0.14, 0.52, 0, 0.36, -0.54, goldOrange);
+        return g;
+    }
+
+    // 12. Dairy Cow (200 Coins)
+    function buildCowMesh() {
+        const g = new THREE.Group();
+        const white = makeMat(0xffffff);
+        const spot = makeMat(0x2f3640);
+        const pinkSnout = makeMat(0xffb8b8);
+        const horn = makeMat(0xf5f6fa);
+        const bellGold = makeMat(0xffd32a);
+
+        addLimb(g, 0.16, 0.20, 0.16, -0.20, 0.20, 0.22, white, -1);
+        addLimb(g, 0.16, 0.20, 0.16, 0.20, 0.20, 0.22, white, 1);
+        addVoxel(g, 0.16, 0.20, 0.16, -0.20, 0.10, -0.22, spot);
+        addVoxel(g, 0.16, 0.20, 0.16, 0.20, 0.10, -0.22, white);
+
+        // Long blocky cow body + black spots
+        addVoxel(g, 0.62, 0.48, 0.78, 0, 0.42, -0.02, white);
+        addVoxel(g, 0.65, 0.24, 0.28, 0, 0.46, -0.10, spot);
+        // Cow head + wide pink muzzle + horns + golden bell
+        addVoxel(g, 0.56, 0.46, 0.48, 0, 0.78, 0.20, white);
+        addVoxel(g, 0.46, 0.22, 0.18, 0, 0.66, 0.48, pinkSnout);
+        addVoxel(g, 0.10, 0.18, 0.10, -0.22, 1.06, 0.18, horn);
+        addVoxel(g, 0.10, 0.18, 0.10, 0.22, 1.06, 0.18, horn);
+        addVoxel(g, 0.14, 0.14, 0.14, 0, 0.48, 0.40, bellGold);
+        addVoxel(g, 0.08, 0.08, 0.05, -0.18, 0.84, 0.44, spot);
+        addVoxel(g, 0.08, 0.08, 0.05, 0.18, 0.84, 0.44, spot);
+        return g;
+    }
+
+    // 13. Crab (230 Coins)
+    function buildCrabMesh() {
+        const g = new THREE.Group();
+        const shellRed = makeMat(0xff3f34);
+        const darkRed = makeMat(0xc23616);
+        const white = makeMat(0xffffff);
+        const black = makeMat(0x111111);
+
+        // Side scuttling legs
+        addLimb(g, 0.18, 0.16, 0.10, -0.44, 0.16, -0.12, darkRed, -1);
+        addLimb(g, 0.18, 0.16, 0.10, 0.44, 0.16, -0.12, darkRed, 1);
+        addVoxel(g, 0.18, 0.16, 0.10, -0.44, 0.08, 0.08, darkRed);
+        addVoxel(g, 0.18, 0.16, 0.10, 0.44, 0.08, 0.08, darkRed);
+
+        // Wide flat red shell
+        addVoxel(g, 0.78, 0.34, 0.56, 0, 0.28, -0.02, shellRed);
+        // Raised stalk eyes
+        addVoxel(g, 0.08, 0.22, 0.08, -0.18, 0.52, 0.12, shellRed);
+        addVoxel(g, 0.08, 0.22, 0.08, 0.18, 0.52, 0.12, shellRed);
+        addVoxel(g, 0.14, 0.14, 0.12, -0.18, 0.64, 0.14, white);
+        addVoxel(g, 0.14, 0.14, 0.12, 0.18, 0.64, 0.14, white);
+        addVoxel(g, 0.07, 0.07, 0.04, -0.18, 0.64, 0.20, black);
+        addVoxel(g, 0.07, 0.07, 0.04, 0.18, 0.64, 0.20, black);
+
+        // Chunky front pincer claws
+        addVoxel(g, 0.24, 0.22, 0.28, -0.44, 0.34, 0.32, shellRed);
+        addVoxel(g, 0.24, 0.22, 0.28, 0.44, 0.34, 0.32, shellRed);
+        return g;
+    }
+
+    // 14. T-Rex (260 Coins)
+    function buildTRexMesh() {
+        const g = new THREE.Group();
+        const dinoGreen = makeMat(0x2ed573);
+        const spineDark = makeMat(0x1e824c);
+        const belly = makeMat(0xc8f7c5);
+        const tooth = makeMat(0xffffff);
+        const black = makeMat(0x111111);
+
+        // Heavy stomping legs
+        addLimb(g, 0.22, 0.28, 0.26, -0.20, 0.28, 0, dinoGreen, -1);
+        addLimb(g, 0.22, 0.28, 0.26, 0.20, 0.28, 0, dinoGreen, 1);
+
+        // Upright torso + pale belly + tiny T-Rex arms
+        addVoxel(g, 0.56, 0.56, 0.56, 0, 0.52, -0.02, dinoGreen);
+        addVoxel(g, 0.38, 0.42, 0.08, 0, 0.48, 0.26, belly);
+        addVoxel(g, 0.10, 0.12, 0.22, -0.32, 0.54, 0.26, dinoGreen);
+        addVoxel(g, 0.10, 0.12, 0.22, 0.32, 0.54, 0.26, dinoGreen);
+
+        // Massive blocky dino head + upper/lower jaw + teeth
+        addVoxel(g, 0.60, 0.44, 0.68, 0, 0.96, 0.14, dinoGreen);
+        addVoxel(g, 0.48, 0.14, 0.44, 0, 0.72, 0.24, spineDark);
+        addVoxel(g, 0.08, 0.08, 0.06, -0.16, 0.76, 0.44, tooth);
+        addVoxel(g, 0.08, 0.08, 0.06, 0.16, 0.76, 0.44, tooth);
+        // Back dorsal plates & heavy tail
+        addVoxel(g, 0.14, 0.16, 0.16, 0, 1.22, 0.0, spineDark);
+        addVoxel(g, 0.14, 0.16, 0.16, 0, 0.84, -0.34, spineDark);
+        addVoxel(g, 0.34, 0.32, 0.56, 0, 0.44, -0.52, dinoGreen);
+        // Fierce eyes
+        addVoxel(g, 0.06, 0.10, 0.10, -0.31, 1.02, 0.18, black);
+        addVoxel(g, 0.06, 0.10, 0.10, 0.31, 1.02, 0.18, black);
+        return g;
+    }
+
+    // 15. Rusty Robot (300 Coins)
+    function buildRoboMesh() {
+        const g = new THREE.Group();
+        const silver = makeMat(0xb2bec3, 0.3, 0.6);
+        const darkMetal = makeMat(0x2d3436, 0.4, 0.5);
+        const cyan = new THREE.MeshBasicMaterial({ color: 0x00f2fe });
+        const accent = new THREE.MeshBasicMaterial({ color: 0xff5252 });
+
+        addLimb(g, 0.22, 0.16, 0.48, -0.22, 0.16, 0, darkMetal, -1);
+        addLimb(g, 0.22, 0.16, 0.48, 0.22, 0.16, 0, darkMetal, 1);
+        addVoxel(g, 0.62, 0.44, 0.48, 0, 0.38, 0, silver);
+        addVoxel(g, 0.34, 0.20, 0.06, 0, 0.40, 0.25, cyan);
+        addVoxel(g, 0.14, 0.34, 0.14, -0.40, 0.38, 0.04, darkMetal);
+        addVoxel(g, 0.14, 0.34, 0.14, 0.40, 0.38, 0.04, darkMetal);
+        addVoxel(g, 0.54, 0.40, 0.46, 0, 0.82, 0, silver);
+        addVoxel(g, 0.42, 0.14, 0.06, 0, 0.82, 0.24, cyan);
+        addVoxel(g, 0.06, 0.20, 0.06, 0, 1.10, 0, darkMetal);
+        addVoxel(g, 0.14, 0.14, 0.14, 0, 1.22, 0, accent);
+        return g;
+    }
+
+    // 16. Unicorn (350 Coins)
+    function buildUnicornMesh() {
+        const g = new THREE.Group();
+        const pearl = makeMat(0xfef9ff);
+        const pink = makeMat(0xff7eb3);
+        const gold = makeMat(0xffd700, 0.3, 0.5);
+        const dark = makeMat(0x2d3436);
+
+        addLimb(g, 0.16, 0.22, 0.16, -0.18, 0.22, 0.18, pink, -1);
+        addLimb(g, 0.16, 0.22, 0.16, 0.18, 0.22, 0.18, pink, 1);
+        addVoxel(g, 0.16, 0.22, 0.16, -0.18, 0.11, -0.18, pink);
+        addVoxel(g, 0.16, 0.22, 0.16, 0.18, 0.11, -0.18, pink);
+        addVoxel(g, 0.54, 0.42, 0.64, 0, 0.40, -0.02, pearl);
+        addVoxel(g, 0.44, 0.52, 0.48, 0, 0.78, 0.14, pearl);
+        addVoxel(g, 0.32, 0.24, 0.24, 0, 0.68, 0.44, pink);
+        addVoxel(g, 0.10, 0.34, 0.10, 0, 1.18, 0.26, gold);
+        addVoxel(g, 0.14, 0.56, 0.18, 0, 0.82, -0.14, pink);
+        addVoxel(g, 0.18, 0.34, 0.18, 0, 0.44, -0.42, pink);
+        addVoxel(g, 0.06, 0.08, 0.08, -0.23, 0.84, 0.22, dark);
+        addVoxel(g, 0.06, 0.08, 0.08, 0.23, 0.84, 0.22, dark);
+        return g;
+    }
+
+    // 17. Spooky Ghost (400 Coins)
+    function buildGhostMesh() {
+        const g = new THREE.Group();
+        const ecto = new THREE.MeshStandardMaterial({
+            color: 0xe0f7fa,
+            roughness: 0.25,
+            transparent: true,
+            opacity: 0.88
+        });
+        const dark = makeMat(0x1e272e);
+        const blush = makeMat(0xff7675);
+
+        addVoxel(g, 0.62, 0.72, 0.62, 0, 0.54, 0, ecto);
+        addVoxel(g, 0.20, 0.18, 0.20, -0.20, 0.14, 0.18, ecto);
+        addVoxel(g, 0.20, 0.18, 0.20, 0.20, 0.14, 0.18, ecto);
+        addVoxel(g, 0.20, 0.18, 0.20, 0, 0.14, -0.20, ecto);
+        addVoxel(g, 0.16, 0.16, 0.26, -0.36, 0.48, 0.10, ecto);
+        addVoxel(g, 0.16, 0.16, 0.26, 0.36, 0.48, 0.10, ecto);
+        addVoxel(g, 0.10, 0.14, 0.05, -0.15, 0.64, 0.32, dark);
+        addVoxel(g, 0.10, 0.14, 0.05, 0.15, 0.64, 0.32, dark);
+        addVoxel(g, 0.14, 0.14, 0.05, 0, 0.48, 0.32, dark);
+        addVoxel(g, 0.10, 0.06, 0.05, -0.24, 0.54, 0.32, blush);
+        addVoxel(g, 0.10, 0.06, 0.05, 0.24, 0.54, 0.32, blush);
+        return g;
+    }
+
+    // 18. Ninja (450 Coins)
+    function buildNinjaMesh() {
+        const g = new THREE.Group();
+        const blackCloth = makeMat(0x1e272e);
+        const skin = makeMat(0xffdab9);
+        const redRibbon = makeMat(0xff3f34);
+        const blade = makeMat(0xdcdde1, 0.2, 0.8);
+        const eyeBlack = makeMat(0x000000);
+
+        addLimb(g, 0.18, 0.22, 0.20, -0.16, 0.22, 0, blackCloth, -1);
+        addLimb(g, 0.18, 0.22, 0.20, 0.16, 0.22, 0, blackCloth, 1);
+        // Shinobi torso + red belt
+        addVoxel(g, 0.54, 0.42, 0.44, 0, 0.42, 0, blackCloth);
+        addVoxel(g, 0.56, 0.08, 0.46, 0, 0.26, 0, redRibbon);
+        // Hooded head + skin eye slit + red headband + trailing tails
+        addVoxel(g, 0.58, 0.48, 0.52, 0, 0.84, 0, blackCloth);
+        addVoxel(g, 0.46, 0.14, 0.06, 0, 0.84, 0.26, skin);
+        addVoxel(g, 0.08, 0.06, 0.04, -0.14, 0.84, 0.29, eyeBlack);
+        addVoxel(g, 0.08, 0.06, 0.04, 0.14, 0.84, 0.29, eyeBlack);
+        addVoxel(g, 0.60, 0.08, 0.54, 0, 0.96, 0, redRibbon);
+        addVoxel(g, 0.10, 0.32, 0.10, -0.12, 0.80, -0.30, redRibbon);
+        // Katana strapped across back
+        const katana = addVoxel(g, 0.08, 0.72, 0.08, 0.12, 0.64, -0.26, blade);
+        katana.rotation.z = -0.55;
+        return g;
+    }
+
+    // 19. Dragon (520 Coins)
+    function buildDragonMesh() {
+        const g = new THREE.Group();
+        const crimson = makeMat(0xeb2f06);
+        const bellyGold = makeMat(0xf6b93b);
+        const horn = makeMat(0xf5f6fa);
+        const eyeGlow = new THREE.MeshBasicMaterial({ color: 0xfff200 });
+
+        addLimb(g, 0.18, 0.16, 0.22, -0.22, 0.16, 0.18, crimson, -1);
+        addLimb(g, 0.18, 0.16, 0.22, 0.22, 0.16, 0.18, crimson, 1);
+        addVoxel(g, 0.18, 0.16, 0.22, -0.22, 0.08, -0.18, crimson);
+        addVoxel(g, 0.18, 0.16, 0.22, 0.22, 0.08, -0.18, crimson);
+        addVoxel(g, 0.58, 0.44, 0.66, 0, 0.36, -0.02, crimson);
+        addVoxel(g, 0.38, 0.32, 0.10, 0, 0.34, 0.30, bellyGold);
+        addVoxel(g, 0.36, 0.08, 0.32, -0.44, 0.54, -0.08, crimson);
+        addVoxel(g, 0.36, 0.08, 0.32, 0.44, 0.54, -0.08, crimson);
+        addVoxel(g, 0.56, 0.44, 0.56, 0, 0.74, 0.08, crimson);
+        addVoxel(g, 0.42, 0.24, 0.28, 0, 0.66, 0.42, crimson);
+        addVoxel(g, 0.10, 0.28, 0.10, -0.18, 1.06, -0.04, horn);
+        addVoxel(g, 0.10, 0.28, 0.10, 0.18, 1.06, -0.04, horn);
+        addVoxel(g, 0.08, 0.08, 0.06, -0.20, 0.80, 0.36, eyeGlow);
+        addVoxel(g, 0.08, 0.08, 0.06, 0.20, 0.80, 0.36, eyeGlow);
+        addVoxel(g, 0.22, 0.20, 0.54, 0, 0.30, -0.54, crimson);
+        addVoxel(g, 0.10, 0.16, 0.12, 0, 0.44, -0.54, bellyGold);
+        return g;
+    }
+
+    // 20. King Frog (600 Coins)
+    function buildKingFrogMesh() {
+        const g = new THREE.Group();
+        const goldBody = makeMat(0xffd700, 0.25, 0.65);
+        const belly = makeMat(0xfff8dc, 0.3, 0.4);
+        const white = makeMat(0xffffff);
+        const black = makeMat(0x111111);
+        const ruby = new THREE.MeshBasicMaterial({ color: 0xff1744 });
+        const royalCape = makeMat(0x8e44ad);
+
+        addLimb(g, 0.22, 0.18, 0.34, -0.38, 0.18, -0.1, goldBody, -1);
+        addLimb(g, 0.22, 0.18, 0.34, 0.38, 0.18, -0.1, goldBody, 1);
+        addVoxel(g, 0.16, 0.22, 0.20, -0.32, 0.11, 0.22, goldBody);
+        addVoxel(g, 0.16, 0.22, 0.20, 0.32, 0.11, 0.22, goldBody);
+        addVoxel(g, 0.74, 0.44, 0.70, 0, 0.28, 0, goldBody);
+        addVoxel(g, 0.56, 0.14, 0.54, 0, 0.14, 0.04, belly);
+        addVoxel(g, 0.24, 0.22, 0.22, -0.21, 0.57, 0.16, goldBody);
+        addVoxel(g, 0.24, 0.22, 0.22, 0.21, 0.57, 0.16, goldBody);
+        addVoxel(g, 0.16, 0.16, 0.06, -0.21, 0.58, 0.26, white);
+        addVoxel(g, 0.16, 0.16, 0.06, 0.21, 0.58, 0.26, white);
+        addVoxel(g, 0.08, 0.08, 0.04, -0.21, 0.58, 0.29, black);
+        addVoxel(g, 0.08, 0.08, 0.04, 0.21, 0.58, 0.29, black);
+        addVoxel(g, 0.62, 0.10, 0.46, 0, 0.51, -0.24, royalCape);
+        addVoxel(g, 0.34, 0.14, 0.34, 0, 0.70, 0.04, goldBody);
+        addVoxel(g, 0.08, 0.12, 0.08, -0.12, 0.82, 0.16, goldBody);
+        addVoxel(g, 0.08, 0.14, 0.08, 0, 0.83, 0.16, goldBody);
+        addVoxel(g, 0.08, 0.12, 0.08, 0.12, 0.82, 0.16, goldBody);
+        addVoxel(g, 0.08, 0.08, 0.05, 0, 0.71, 0.22, ruby);
+        return g;
+    }
+
+    // =========================================================================
+    // 3. 4 DISTINCT 3D WORLD MAPS / THEMES
+    // =========================================================================
+    const MAPS = [
+        {
+            id: 'meadow',
+            name: 'Meadow',
+            emoji: '🌲',
+            skyColor: 0x7ec8e3,
+            fogColor: 0x7ec8e3,
+            hemiSky: 0xffffff,
+            hemiGround: 0x3b6e3c,
+            dirColor: 0xfff6d6,
+            groundEven: 0x55a630,
+            groundOdd: 0x4c9a2a,
+            roadColor: 0x2f3640,
+            dashColor: 0xf5f6fa,
+            riverColor: 0x0097e6,
+            riverEmissive: 0x000000,
+            raftColor: 0x795548,
+            raftTrim: 0xd7ccc8,
+            vehicles: [
+                { body: 0xe74c3c, length: 1.55, height: 0.56, style: 'car' },
+                { body: 0xf1c40f, length: 1.60, height: 0.56, style: 'taxi' },
+                { body: 0x2c3e50, length: 1.65, height: 0.58, style: 'police' },
+                { body: 0x3498db, length: 2.25, height: 0.82, style: 'truck' },
+                { body: 0xe67e22, length: 2.65, height: 0.88, style: 'bus' }
+            ]
+        },
+        {
+            id: 'desert',
+            name: 'Desert',
+            emoji: '🏜️',
+            skyColor: 0xf7b779,
+            fogColor: 0xf5b076,
+            hemiSky: 0xfff0d4,
+            hemiGround: 0xc27d38,
+            dirColor: 0xffe5b4,
+            groundEven: 0xe6a15c,
+            groundOdd: 0xd9924e,
+            roadColor: 0x5c4738,
+            dashColor: 0xffd166,
+            riverColor: 0x1abc9c,
+            riverEmissive: 0x000000,
+            raftColor: 0xc49a6c,
+            raftTrim: 0xf5deb3,
+            vehicles: [
+                { body: 0xd35400, length: 1.65, height: 0.64, style: 'jeep' },
+                { body: 0xc0392b, length: 1.60, height: 0.52, style: 'car' },
+                { body: 0xf39c12, length: 2.30, height: 0.84, style: 'truck' },
+                { body: 0x16a085, length: 1.65, height: 0.62, style: 'jeep' }
+            ]
+        },
+        {
+            id: 'arctic',
+            name: 'Arctic',
+            emoji: '❄️',
+            skyColor: 0xb8e2f8,
+            fogColor: 0xcbe9fa,
+            hemiSky: 0xffffff,
+            hemiGround: 0x89c4f4,
+            dirColor: 0xeaf6ff,
+            groundEven: 0xf0f8ff,
+            groundOdd: 0xdbeeff,
+            roadColor: 0x4b6584,
+            dashColor: 0x70a1ff,
+            riverColor: 0x0984e3,
+            riverEmissive: 0x04294a,
+            raftColor: 0xdff9fb,
+            raftTrim: 0x7ed6df,
+            vehicles: [
+                { body: 0xff6b6b, length: 1.75, height: 0.68, style: 'snowplow' },
+                { body: 0x1e90ff, length: 1.65, height: 0.62, style: 'jeep' },
+                { body: 0xffa502, length: 2.35, height: 0.86, style: 'truck' },
+                { body: 0x2ed573, length: 1.60, height: 0.58, style: 'car' }
+            ]
+        },
+        {
+            id: 'volcano',
+            name: 'Volcano',
+            emoji: '🌋',
+            skyColor: 0x2b1216,
+            fogColor: 0x3b1518,
+            hemiSky: 0xff7675,
+            hemiGround: 0x2d1313,
+            dirColor: 0xffb142,
+            groundEven: 0x2d2933,
+            groundOdd: 0x231f29,
+            roadColor: 0x19171c,
+            dashColor: 0xff5252,
+            riverColor: 0xff4500,
+            riverEmissive: 0xd63031,
+            raftColor: 0x4b4453,
+            raftTrim: 0xff793f,
+            vehicles: [
+                { body: 0xff3f34, length: 1.65, height: 0.58, style: 'car' },
+                { body: 0xffa801, length: 1.75, height: 0.66, style: 'jeep' },
+                { body: 0x575fcf, length: 2.35, height: 0.86, style: 'truck' },
+                { body: 0x0be881, length: 1.60, height: 0.56, style: 'police' }
+            ]
+        }
+    ];
+
+    // =========================================================================
+    // 4. THREE.JS SCENE, LIGHTING & CAMERA SETUP
+    // =========================================================================
+    const canvas = document.getElementById('gameCanvas');
+    const renderer = new THREE.WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x7ec8e3);
+    scene.fog = new THREE.FogExp2(0x7ec8e3, 0.022);
+
+    const camera = new THREE.PerspectiveCamera(42, window.innerWidth / window.innerHeight, 0.1, 120);
+    const camOffset = new THREE.Vector3(3.8, 9.2, 8.2);
+    const camLookOffset = new THREE.Vector3(0, 0.4, -2.2);
+
+    const hemiLight = new THREE.HemisphereLight(0xffffff, 0x3b6e3c, 0.74);
+    hemiLight.position.set(0, 20, 0);
+    scene.add(hemiLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfff6d6, 0.96);
+    dirLight.position.set(12, 22, 14);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 2048;
+    dirLight.shadow.mapSize.height = 2048;
+    dirLight.shadow.camera.near = 2;
+    dirLight.shadow.camera.far = 65;
+    const d = 18;
+    dirLight.shadow.camera.left = -d;
+    dirLight.shadow.camera.right = d;
+    dirLight.shadow.camera.top = d;
+    dirLight.shadow.camera.bottom = -d;
+    dirLight.shadow.bias = -0.0005;
+    scene.add(dirLight);
+    scene.add(dirLight.target);
+
+    // =========================================================================
+    // 5. GAME CONSTANTS & PERSISTENT STATE
+    // =========================================================================
+    const PLAY_HALF_COLS = 4;
+    const TOTAL_HALF_COLS = 11;
+    const TILE_SIZE = 1.2;
+
+    let selectedCharId = localStorage.getItem('crossy3d_char') || 'chicken';
+    let inspectedCharId = selectedCharId;
+    let selectedMapId = localStorage.getItem('crossy3d_map') || 'meadow';
+    let bestScore = parseInt(localStorage.getItem('crossy3d_best') || '0', 10);
+
+    // Persistent coin bank (new players start with 25 coins so they can try unlocking right away!)
+    let savedCoins = localStorage.getItem('crossy3d_coins');
+    let coinBank = savedCoins !== null ? parseInt(savedCoins, 10) : 25;
+    if (savedCoins === null) {
+        localStorage.setItem('crossy3d_coins', String(coinBank));
+    }
+
+    // Persistent unlocked characters set
+    let unlockedChars = new Set(['chicken', 'frog']);
+    try {
+        const storedUnlocks = JSON.parse(localStorage.getItem('crossy3d_unlocks') || '[]');
+        if (Array.isArray(storedUnlocks)) {
+            storedUnlocks.forEach(id => unlockedChars.add(id));
+        }
+    } catch (e) {}
+    if (!unlockedChars.has(selectedCharId)) {
+        selectedCharId = 'chicken';
+        inspectedCharId = 'chicken';
+    }
+
+    function getCurrentMap() {
+        return MAPS.find(m => m.id === selectedMapId) || MAPS[0];
+    }
+
+    function saveCoins() {
+        localStorage.setItem('crossy3d_coins', String(coinBank));
+    }
+
+    function saveUnlocks() {
+        localStorage.setItem('crossy3d_unlocks', JSON.stringify(Array.from(unlockedChars)));
+    }
+
+    let score = 0;
+    let stage = 1;
+    let lives = 3;
+    let maxRowReached = 0;
+    let isGameOver = false;
+    let isStageTransition = false;
+    let isGalleryOpen = false;
+    let invulnTimer = 0;
+    let hopStepParity = 1;
+
+    const player = {
+        gridX: 0,
+        gridZ: 0,
+        worldX: 0,
+        worldZ: 0,
+        startX: 0,
+        startZ: 0,
+        targetX: 0,
+        targetZ: 0,
+        hopProgress: 1,
+        hopDuration: 0.14,
+        facingAngle: Math.PI,
+        mesh: null
+    };
+
+    const worldGroup = new THREE.Group();
+    scene.add(worldGroup);
+
+    const particleGroup = new THREE.Group();
+    scene.add(particleGroup);
+    let particles = [];
+
+    let lanes = [];
+    let goalRow = 18;
+
+    // =========================================================================
+    // 6. PARTICLE SYSTEM
+    // =========================================================================
+    const particleGeo = new THREE.BoxGeometry(0.14, 0.14, 0.14);
+
+    function spawnParticles(x, y, z, color, count = 12, speed = 3.0) {
+        const mat = new THREE.MeshBasicMaterial({ color });
+        for (let i = 0; i < count; i++) {
+            const mesh = new THREE.Mesh(particleGeo, mat);
+            mesh.position.set(x, y, z);
+            const angle = Math.random() * Math.PI * 2;
+            const horiz = (0.3 + Math.random() * 0.7) * speed;
+            particles.push({
+                mesh,
+                vx: Math.cos(angle) * horiz,
+                vy: (0.6 + Math.random() * 0.9) * speed,
+                vz: Math.sin(angle) * horiz,
+                life: 0.45 + Math.random() * 0.25,
+                maxLife: 0.7
+            });
+            particleGroup.add(mesh);
+        }
+    }
+
+    function updateParticles(dt) {
+        for (let i = particles.length - 1; i >= 0; i--) {
+            const p = particles[i];
+            p.life -= dt;
+            if (p.life <= 0) {
+                particleGroup.remove(p.mesh);
+                particles.splice(i, 1);
+                continue;
+            }
+            p.vy -= 12 * dt;
+            p.mesh.position.x += p.vx * dt;
+            p.mesh.position.y = Math.max(0.05, p.mesh.position.y + p.vy * dt);
+            p.mesh.position.z += p.vz * dt;
+            p.mesh.rotation.x += 5 * dt;
+            p.mesh.rotation.y += 5 * dt;
+            const s = Math.max(0.01, p.life / p.maxLife);
+            p.mesh.scale.set(s, s, s);
+        }
+    }
+
+    // =========================================================================
+    // 7. 3D WORLD, SCENERY, VEHICLE, RAFT & COIN BUILDERS
+    // =========================================================================
+    function buildSceneryProp(mapId) {
+        const g = new THREE.Group();
+        if (mapId === 'desert') {
+            const cactusMat = makeMat(0x2ecc71, 0.65);
+            addVoxel(g, 0.26, 0.85, 0.26, 0, 0.425, 0, cactusMat);
+            addVoxel(g, 0.22, 0.14, 0.16, -0.22, 0.46, 0, cactusMat);
+            addVoxel(g, 0.14, 0.28, 0.16, -0.26, 0.60, 0, cactusMat);
+            addVoxel(g, 0.22, 0.14, 0.16, 0.22, 0.54, 0, cactusMat);
+            addVoxel(g, 0.14, 0.26, 0.16, 0.26, 0.68, 0, cactusMat);
+        } else if (mapId === 'arctic') {
+            const iceMat = new THREE.MeshStandardMaterial({
+                color: 0x74b9ff,
+                roughness: 0.2,
+                metalness: 0.15
+            });
+            const snowCap = makeMat(0xffffff);
+            addVoxel(g, 0.52, 0.68, 0.52, 0, 0.34, 0, iceMat);
+            addVoxel(g, 0.32, 0.46, 0.32, 0.10, 0.78, -0.06, iceMat);
+            addVoxel(g, 0.54, 0.10, 0.54, 0, 0.68, 0, snowCap);
+        } else if (mapId === 'volcano') {
+            const obsidian = makeMat(0x1e1b24, 0.4, 0.3);
+            const magma = new THREE.MeshBasicMaterial({ color: 0xff5252 });
+            addVoxel(g, 0.54, 0.75, 0.54, 0, 0.375, 0, obsidian);
+            addVoxel(g, 0.34, 0.45, 0.34, 0, 0.92, 0, obsidian);
+            addVoxel(g, 0.58, 0.10, 0.58, 0, 0.36, 0, magma);
+        } else {
+            const trunkMat = makeMat(0x6d4c41);
+            const leaves1 = makeMat(0x2e7d32);
+            const leaves2 = makeMat(0x43a047);
+            addVoxel(g, 0.24, 0.46, 0.24, 0, 0.23, 0, trunkMat);
+            addVoxel(g, 0.76, 0.46, 0.76, 0, 0.64, 0, leaves1);
+            addVoxel(g, 0.54, 0.38, 0.54, 0, 0.98, 0, leaves2);
+        }
+        return g;
+    }
+
+    function buildVehicleMesh(spec, dir) {
+        const g = new THREE.Group();
+        const bodyMat = makeMat(spec.body, 0.4, 0.15);
+        const cabinMat = makeMat(0xffffff, 0.35, 0.1);
+        const glassMat = makeMat(0x2d3436, 0.2, 0.6);
+        const wheelMat = makeMat(0x1e272e, 0.7);
+        const headlightMat = new THREE.MeshBasicMaterial({ color: 0xfff200 });
+
+        const L = spec.length;
+        const H = spec.height;
+        const W = 0.78;
+
+        addVoxel(g, L, H * 0.55, W, 0, 0.18 + H * 0.275, 0, bodyMat);
+
+        if (spec.style === 'truck') {
+            addVoxel(g, L * 0.30, H * 0.62, W * 0.94, L * 0.30, 0.18 + H * 0.68, 0, bodyMat);
+            addVoxel(g, L * 0.64, H * 0.72, W * 0.98, -L * 0.16, 0.18 + H * 0.74, 0, cabinMat);
+            addVoxel(g, 0.06, H * 0.36, W * 0.80, L * 0.45, 0.18 + H * 0.72, 0, glassMat);
+        } else if (spec.style === 'bus') {
+            addVoxel(g, L * 0.94, H * 0.58, W * 0.96, 0, 0.18 + H * 0.76, 0, cabinMat);
+            addVoxel(g, L * 0.82, H * 0.26, W * 0.99, 0, 0.18 + H * 0.76, 0, glassMat);
+        } else {
+            addVoxel(g, L * 0.56, H * 0.48, W * 0.88, -L * 0.04, 0.18 + H * 0.72, 0, cabinMat);
+            addVoxel(g, L * 0.60, H * 0.34, W * 0.91, -L * 0.04, 0.18 + H * 0.72, 0, glassMat);
+            if (spec.style === 'police' || spec.style === 'snowplow' || spec.style === 'taxi') {
+                const sirenColor = spec.style === 'police' ? 0x00a8ff : 0xffa502;
+                addVoxel(g, 0.22, 0.10, 0.36, -L * 0.04, 0.18 + H * 1.01, 0, new THREE.MeshBasicMaterial({ color: sirenColor }));
+            }
+            if (spec.style === 'snowplow') {
+                addVoxel(g, 0.18, 0.36, W * 1.12, L * 0.54, 0.24, 0, makeMat(0xffd32a));
+            }
+        }
+
+        const wheelOffset = L * 0.32;
+        [-wheelOffset, wheelOffset].forEach(wx => {
+            [-W * 0.48, W * 0.48].forEach(wz => {
+                addVoxel(g, 0.28, 0.28, 0.12, wx, 0.14, wz, wheelMat);
+            });
+        });
+
+        addVoxel(g, 0.06, 0.12, 0.14, L * 0.50, 0.28, -W * 0.28, headlightMat);
+        addVoxel(g, 0.06, 0.12, 0.14, L * 0.50, 0.28, W * 0.28, headlightMat);
+
+        if (dir < 0) {
+            g.rotation.y = Math.PI;
+        }
+        return g;
+    }
+
+    function buildRaftMesh(lengthTiles, map) {
+        const g = new THREE.Group();
+        const raftMat = makeMat(map.raftColor, 0.7);
+        const trimMat = makeMat(map.raftTrim, 0.5);
+        const width = lengthTiles * TILE_SIZE - 0.14;
+        addVoxel(g, width, 0.22, 0.88, 0, -0.02, 0, raftMat);
+        addVoxel(g, width * 0.92, 0.06, 0.72, 0, 0.10, 0, trimMat);
+        return g;
+    }
+
+    function buildCoinMesh() {
+        const g = new THREE.Group();
+        const goldMat = makeMat(0xffd700, 0.25, 0.7);
+        const rimMat = makeMat(0xffa502, 0.3, 0.6);
+        addVoxel(g, 0.36, 0.36, 0.12, 0, 0.42, 0, goldMat);
+        addVoxel(g, 0.22, 0.22, 0.15, 0, 0.42, 0, rimMat);
+        return g;
+    }
+
+    // =========================================================================
+    // 8. STAGE & PROCEDURAL LANE GENERATOR
+    // =========================================================================
+    function buildStage(stageNum) {
+        while (worldGroup.children.length > 0) {
+            worldGroup.remove(worldGroup.children[0]);
+        }
+        lanes = [];
+
+        const map = getCurrentMap();
+        scene.background = new THREE.Color(map.skyColor);
+        scene.fog = new THREE.FogExp2(map.fogColor, 0.022);
+        hemiLight.color.setHex(map.hemiSky);
+        hemiLight.groundColor.setHex(map.hemiGround);
+        dirLight.color.setHex(map.dirColor);
+
+        goalRow = Math.min(26, 16 + stageNum * 2);
+        const totalRows = goalRow + 6;
+        const rowWidth = (TOTAL_HALF_COLS * 2 + 1) * TILE_SIZE;
+        const speedScale = 1 + (stageNum - 1) * 0.11;
+
+        const grassEvenMat = makeMat(map.groundEven, 0.8);
+        const grassOddMat = makeMat(map.groundOdd, 0.8);
+        const roadMat = makeMat(map.roadColor, 0.85);
+        const dashMat = makeMat(map.dashColor, 0.6);
+        const riverMat = new THREE.MeshStandardMaterial({
+            color: map.riverColor,
+            emissive: map.riverEmissive,
+            emissiveIntensity: map.id === 'volcano' ? 0.55 : 0.1,
+            roughness: 0.25
+        });
+
+        for (let r = -3; r <= totalRows; r++) {
+            const zPos = -r * TILE_SIZE;
+            let type = 'grass';
+
+            if (r < 0 || r === 0 || r === 1 || r === goalRow - 1 || r > goalRow) {
+                type = 'grass';
+            } else if (r === goalRow) {
+                type = 'goal';
+            } else {
+                const roll = Math.random();
+                if (roll < 0.22) type = 'grass';
+                else if (roll < 0.68) type = 'road';
+                else type = 'river';
+            }
+
+            if (type === 'grass') {
+                const mat = (Math.abs(r) % 2 === 0) ? grassEvenMat : grassOddMat;
+                addVoxel(worldGroup, rowWidth, 0.4, TILE_SIZE, 0, -0.2, zPos, mat);
+
+                const obstacles = new Set();
+                if (r >= 0 && r <= goalRow) {
+                    for (let c = -TOTAL_HALF_COLS; c <= TOTAL_HALF_COLS; c++) {
+                        if (Math.abs(c) > PLAY_HALF_COLS) {
+                            const prop = buildSceneryProp(map.id);
+                            prop.position.set(c * TILE_SIZE, 0, zPos);
+                            worldGroup.add(prop);
+                        } else if (r >= 2 && r < goalRow - 1 && Math.random() < 0.18) {
+                            obstacles.add(c);
+                            const prop = buildSceneryProp(map.id);
+                            prop.position.set(c * TILE_SIZE, 0, zPos);
+                            worldGroup.add(prop);
+                        }
+                    }
+                }
+
+                let coin = null;
+                if (r >= 2 && r < goalRow && Math.random() < 0.34) {
+                    const freeCols = [];
+                    for (let c = -PLAY_HALF_COLS; c <= PLAY_HALF_COLS; c++) {
+                        if (!obstacles.has(c)) freeCols.push(c);
+                    }
+                    if (freeCols.length > 0) {
+                        const col = freeCols[Math.floor(Math.random() * freeCols.length)];
+                        const coinMesh = buildCoinMesh();
+                        coinMesh.position.set(col * TILE_SIZE, 0, zPos);
+                        worldGroup.add(coinMesh);
+                        coin = { col, mesh: coinMesh, collected: false };
+                    }
+                }
+
+                if (r >= 0) {
+                    lanes[r] = { type: 'grass', obstacles, coin };
+                }
+            } else if (type === 'road') {
+                addVoxel(worldGroup, rowWidth, 0.36, TILE_SIZE, 0, -0.22, zPos, roadMat);
+                for (let c = -TOTAL_HALF_COLS; c <= TOTAL_HALF_COLS; c++) {
+                    addVoxel(worldGroup, 0.48, 0.02, 0.08, c * TILE_SIZE, -0.03, zPos, dashMat);
+                }
+
+                const dir = (r % 2 === 0) ? 1 : -1;
+                const speed = (1.55 + Math.random() * 1.45) * speedScale;
+                const span = (PLAY_HALF_COLS + 3) * 2;
+                const count = Math.min(4, 2 + Math.floor(Math.random() * 2));
+                const spacing = span / count;
+                const startOffset = Math.random() * span;
+                const vehicles = [];
+
+                for (let i = 0; i < count; i++) {
+                    const spec = map.vehicles[Math.floor(Math.random() * map.vehicles.length)];
+                    const mesh = buildVehicleMesh(spec, dir);
+                    const gridX = -PLAY_HALF_COLS - 3 + ((startOffset + i * spacing) % span);
+                    mesh.position.set(gridX * TILE_SIZE, 0, zPos);
+                    worldGroup.add(mesh);
+                    vehicles.push({
+                        gridX,
+                        span,
+                        halfWidth: (spec.length / TILE_SIZE) * 0.46,
+                        mesh
+                    });
+                }
+
+                lanes[r] = { type: 'road', dir, speed, vehicles, coin: null };
+            } else if (type === 'river') {
+                addVoxel(worldGroup, rowWidth, 0.28, TILE_SIZE, 0, -0.26, zPos, riverMat);
+
+                const prevLane = lanes[r - 1];
+                const dir = (prevLane && prevLane.type === 'river') ? -prevLane.dir : ((r % 2 === 0) ? 1 : -1);
+                const speed = (1.25 + Math.random() * 1.15) * speedScale;
+                const span = (PLAY_HALF_COLS + 3) * 2;
+                const count = 3;
+                const spacing = span / count;
+                const startOffset = Math.random() * span;
+                const logs = [];
+
+                for (let i = 0; i < count; i++) {
+                    const lenTiles = 2 + Math.floor(Math.random() * 2);
+                    const mesh = buildRaftMesh(lenTiles, map);
+                    const gridX = -PLAY_HALF_COLS - 3 + ((startOffset + i * spacing) % span);
+                    mesh.position.set(gridX * TILE_SIZE, 0, zPos);
+                    worldGroup.add(mesh);
+                    logs.push({
+                        gridX,
+                        span,
+                        halfWidth: lenTiles * 0.5,
+                        mesh
+                    });
+                }
+
+                lanes[r] = { type: 'river', dir, speed, logs, coin: null };
+            } else if (type === 'goal') {
+                const lightCheck = makeMat(0xfff8e1, 0.4);
+                const goldCheck = makeMat(0xffca28, 0.35, 0.2);
+                for (let c = -TOTAL_HALF_COLS; c <= TOTAL_HALF_COLS; c++) {
+                    const checkMat = (Math.abs(c) % 2 === 0) ? lightCheck : goldCheck;
+                    addVoxel(worldGroup, TILE_SIZE, 0.42, TILE_SIZE, c * TILE_SIZE, -0.19, zPos, checkMat);
+                }
+                const postMat = makeMat(0xffffff);
+                const bannerMat = makeMat(0xe74c3c);
+                [-PLAY_HALF_COLS - 0.5, PLAY_HALF_COLS + 0.5].forEach(px => {
+                    addVoxel(worldGroup, 0.16, 1.8, 0.16, px * TILE_SIZE, 0.9, zPos, postMat);
+                });
+                addVoxel(worldGroup, (PLAY_HALF_COLS * 2 + 1) * TILE_SIZE, 0.34, 0.12, 0, 1.65, zPos, bannerMat);
+
+                lanes[r] = { type: 'goal', obstacles: new Set(), coin: null };
+            }
+        }
+    }
+
+    // =========================================================================
+    // 9. MAP SWITCHER & CROSSY ROAD CHARACTER GALLERY UI + 3D TURNTABLE
+    // =========================================================================
+    const ttCanvas = document.getElementById('turntableCanvas');
+    const ttRenderer = new THREE.WebGLRenderer({ canvas: ttCanvas, antialias: true, alpha: true });
+    ttRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+    ttRenderer.setSize(190, 170, false);
+
+    const ttScene = new THREE.Scene();
+    const ttCamera = new THREE.PerspectiveCamera(36, 190 / 170, 0.1, 20);
+    ttCamera.position.set(0, 1.55, 2.75);
+    ttCamera.lookAt(0, 0.55, 0);
+
+    const ttHemi = new THREE.HemisphereLight(0xffffff, 0x2d5932, 0.95);
+    ttScene.add(ttHemi);
+    const ttDir = new THREE.DirectionalLight(0xfff6d6, 0.9);
+    ttDir.position.set(2.5, 4, 3);
+    ttScene.add(ttDir);
+
+    // Pedestal under preview character
+    const pedestal = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.75, 0.85, 0.16, 16),
+        makeMat(0x4caf50, 0.5, 0.1)
+    );
+    pedestal.position.y = -0.08;
+    ttScene.add(pedestal);
+
+    let ttModel = null;
+
+    function setTurntableModel(charId) {
+        if (ttModel) {
+            ttScene.remove(ttModel);
+        }
+        const def = CHARACTERS.find(c => c.id === charId) || CHARACTERS[0];
+        ttModel = def.build();
+        ttScene.add(ttModel);
+    }
+
+    function initMapSwitcher() {
+        const container = document.getElementById('mapSwitcher');
+        container.innerHTML = '';
+        MAPS.forEach(m => {
+            const btn = document.createElement('button');
+            btn.className = 'map-btn' + (m.id === selectedMapId ? ' active' : '');
+            btn.dataset.id = m.id;
+            btn.innerHTML = `<span>${m.emoji}</span><span>${m.name}</span>`;
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (selectedMapId === m.id) return;
+                sound.init();
+                sound.playHop(1.15);
+                selectedMapId = m.id;
+                localStorage.setItem('crossy3d_map', m.id);
+                document.querySelectorAll('.map-btn').forEach(b => {
+                    b.classList.toggle('active', b.dataset.id === m.id);
+                });
+                maxRowReached = 0;
+                buildStage(stage);
+                respawnPlayerAtStart();
+                spawnParticles(0, 0.6, 0, 0xffffff, 18, 3.5);
+                showToast(`${m.emoji} Map: ${m.name}`);
+            });
+            container.appendChild(btn);
+        });
+    }
+
+    function setPlayerCharacter(charId) {
+        selectedCharId = charId;
+        inspectedCharId = charId;
+        localStorage.setItem('crossy3d_char', charId);
+
+        if (player.mesh) {
+            scene.remove(player.mesh);
+        }
+        const def = CHARACTERS.find(c => c.id === charId) || CHARACTERS[0];
+        player.mesh = def.build();
+        player.mesh.position.set(player.worldX, 0, player.worldZ);
+        player.mesh.rotation.y = player.facingAngle;
+        scene.add(player.mesh);
+
+        renderCharBar();
+        if (isGalleryOpen) renderGallery();
+    }
+
+    function renderCharBar() {
+        const def = CHARACTERS.find(c => c.id === selectedCharId) || CHARACTERS[0];
+        document.getElementById('activeCharEmoji').textContent = def.emoji;
+        document.getElementById('activeCharName').textContent = def.name;
+        document.getElementById('unlockCountBadge').textContent = `${unlockedChars.size}/${CHARACTERS.length}`;
+    }
+
+    function cycleUnlockedCharacter(step) {
+        const unlockedList = CHARACTERS.filter(c => unlockedChars.has(c.id));
+        if (unlockedList.length <= 1) return;
+        const idx = unlockedList.findIndex(c => c.id === selectedCharId);
+        const nextIdx = (idx + step + unlockedList.length) % unlockedList.length;
+        const nextChar = unlockedList[nextIdx];
+        sound.init();
+        sound.playHop(nextChar.pitch);
+        setPlayerCharacter(nextChar.id);
+        if (player.mesh) {
+            spawnParticles(player.worldX, 0.5, player.worldZ, 0xffd54f, 10, 2.5);
+        }
+    }
+
+    function openGallery() {
+        sound.init();
+        sound.playHop(1.2);
+        isGalleryOpen = true;
+        inspectedCharId = selectedCharId;
+        setTurntableModel(inspectedCharId);
+        renderGallery();
+        document.getElementById('galleryOverlay').classList.add('visible');
+    }
+
+    function closeGallery() {
+        isGalleryOpen = false;
+        document.getElementById('galleryOverlay').classList.remove('visible');
+    }
+
+    function renderGallery() {
+        document.getElementById('galleryUnlockStat').textContent = `(${unlockedChars.size}/${CHARACTERS.length} Unlocked)`;
+        document.getElementById('galleryCoinVal').textContent = coinBank;
+
+        const inspected = CHARACTERS.find(c => c.id === inspectedCharId) || CHARACTERS[0];
+        const isUnlocked = unlockedChars.has(inspected.id);
+        const isEquipped = inspected.id === selectedCharId;
+        const canAfford = !isUnlocked && coinBank >= inspected.cost;
+
+        document.getElementById('previewName').textContent = `${inspected.emoji} ${inspected.name}`;
+        document.getElementById('previewTrait').textContent = inspected.trait;
+
+        const actionBtn = document.getElementById('previewActionBtn');
+        actionBtn.className = 'btn-flat preview-action-btn';
+        if (isEquipped) {
+            actionBtn.classList.add('equipped');
+            actionBtn.textContent = '✓ EQUIPPED';
+        } else if (isUnlocked) {
+            actionBtn.textContent = `▶ EQUIP ${inspected.name.toUpperCase()}`;
+        } else if (canAfford) {
+            actionBtn.textContent = `🔓 UNLOCK · 🪙 ${inspected.cost}`;
+        } else {
+            actionBtn.classList.add('locked-poor');
+            actionBtn.textContent = `🔒 NEED 🪙 ${inspected.cost}`;
+        }
+
+        const grid = document.getElementById('rosterGrid');
+        const prevScroll = grid.scrollTop;
+        grid.innerHTML = '';
+
+        CHARACTERS.forEach(ch => {
+            const chUnlocked = unlockedChars.has(ch.id);
+            const chEquipped = ch.id === selectedCharId;
+            const chInspecting = ch.id === inspectedCharId;
+            const chAffordable = !chUnlocked && coinBank >= ch.cost;
+
+            const card = document.createElement('button');
+            card.className = 'roster-card'
+                + (chInspecting ? ' inspecting' : '')
+                + (chEquipped ? ' equipped' : '')
+                + (!chUnlocked ? ' locked' : '')
+                + (chAffordable ? ' affordable' : '');
+
+            let statusText = chEquipped ? 'EQUIPPED' : (chUnlocked ? 'READY' : `🪙 ${ch.cost}`);
+            card.innerHTML = `
+                <span class="roster-emoji">${ch.emoji}</span>
+                <span class="roster-name">${ch.name}</span>
+                <span class="roster-status">${statusText}</span>
+            `;
+
+            card.addEventListener('click', () => {
+                sound.init();
+                inspectedCharId = ch.id;
+                setTurntableModel(ch.id);
+                if (chUnlocked && !chEquipped) {
+                    sound.playHop(ch.pitch);
+                    setPlayerCharacter(ch.id);
+                } else {
+                    sound.playHop(1.1);
+                    renderGallery();
+                }
+            });
+
+            grid.appendChild(card);
+        });
+
+        grid.scrollTop = prevScroll;
+    }
+
+    // =========================================================================
+    // 10. PLAYER MOVEMENT, SCORE, LIVES & OVERLAYS
+    // =========================================================================
+    function respawnPlayerAtStart() {
+        player.gridX = 0;
+        player.gridZ = 0;
+        player.worldX = 0;
+        player.worldZ = 0;
+        player.startX = 0;
+        player.startZ = 0;
+        player.targetX = 0;
+        player.targetZ = 0;
+        player.hopProgress = 1;
+        player.facingAngle = Math.PI;
+        if (player.mesh) {
+            player.mesh.position.set(0, 0, 0);
+            player.mesh.scale.set(1, 1, 1);
+            player.mesh.rotation.set(0, Math.PI, 0);
+        }
+    }
+
+    function tryMove(dir) {
+        if (isGameOver || isStageTransition || isGalleryOpen) return;
+        sound.init();
+
+        if (player.hopProgress < 0.72) return;
+
+        let nextGridX = Math.round(player.worldX / TILE_SIZE);
+        let nextGridZ = player.gridZ;
+
+        if (dir === 'up') {
+            nextGridZ += 1;
+            player.facingAngle = Math.PI;
+        } else if (dir === 'down') {
+            nextGridZ = Math.max(0, player.gridZ - 1);
+            player.facingAngle = 0;
+        } else if (dir === 'left') {
+            nextGridX -= 1;
+            player.facingAngle = -Math.PI / 2;
+        } else if (dir === 'right') {
+            nextGridX += 1;
+            player.facingAngle = Math.PI / 2;
+        }
+
+        if (nextGridX < -PLAY_HALF_COLS || nextGridX > PLAY_HALF_COLS) {
+            player.mesh.rotation.y = player.facingAngle;
+            return;
+        }
+
+        const targetLane = lanes[nextGridZ];
+        if (targetLane && targetLane.obstacles && targetLane.obstacles.has(nextGridX)) {
+            player.mesh.rotation.y = player.facingAngle;
+            return;
+        }
+
+        player.gridX = nextGridX;
+        player.gridZ = nextGridZ;
+        player.startX = player.worldX;
+        player.startZ = player.worldZ;
+        player.targetX = nextGridX * TILE_SIZE;
+        player.targetZ = -nextGridZ * TILE_SIZE;
+        player.hopProgress = 0;
+        hopStepParity *= -1;
+
+        const charDef = CHARACTERS.find(c => c.id === selectedCharId) || CHARACTERS[0];
+        sound.playHop(charDef.pitch);
+        spawnCharacterTrailParticles(charDef, player.startX, player.startZ, true);
+
+        if (nextGridZ > maxRowReached) {
+            maxRowReached = nextGridZ;
+            addScore(10);
+        }
+    }
+
+    function spawnCharacterTrailParticles(charDef, x, z, isHopBurst) {
+        const t = charDef.trail;
+        if (t === 'rainbow') {
+            const rainbow = [0xff5252, 0xffb142, 0xffda79, 0x33d9b2, 0x34ace0, 0x706fd3];
+            spawnParticles(x, 0.25, z, rainbow[Math.floor(Math.random() * rainbow.length)], isHopBurst ? 7 : 2, 2.2);
+        } else if (t === 'fire') {
+            spawnParticles(x, 0.3, z, Math.random() < 0.5 ? 0xff5252 : 0xffb142, isHopBurst ? 7 : 2, 2.4);
+        } else if (t === 'royal' || t === 'gold') {
+            spawnParticles(x, 0.4, z, 0xffd700, isHopBurst ? 6 : 1, 1.8);
+        } else if (t === 'ecto') {
+            spawnParticles(x, 0.35, z, 0x81ecec, isHopBurst ? 6 : 1, 1.6);
+        } else if (t === 'exhaust') {
+            spawnParticles(x, 0.35, z, 0x95a5a6, isHopBurst ? 6 : 1, 1.7);
+        } else if (t === 'snow') {
+            spawnParticles(x, 0.25, z, 0xffffff, isHopBurst ? 6 : 1, 1.8);
+        } else if (t === 'hearts') {
+            spawnParticles(x, 0.45, z, 0xff6b81, isHopBurst ? 5 : 1, 1.7);
+        } else if (t === 'smoke') {
+            spawnParticles(x, 0.25, z, 0x2f3640, isHopBurst ? 7 : 1, 2.1);
+        } else if (t === 'bubbles' || t === 'water') {
+            spawnParticles(x, 0.2, z, 0x4fc3f7, isHopBurst ? 5 : 1, 1.7);
+        } else if (isHopBurst) {
+            spawnParticles(x, 0.12, z, 0xdcedc8, 5, 1.6);
+        }
+    }
+
+    function addScore(pts) {
+        score += pts;
+        if (score > bestScore) {
+            bestScore = score;
+            localStorage.setItem('crossy3d_best', String(bestScore));
+        }
+        updateHUD();
+    }
+
+    function addCoins(amount) {
+        coinBank += amount;
+        saveCoins();
+        updateHUD();
+        renderCharBar();
+    }
+
+    function updateHUD() {
+        document.getElementById('scoreDisplay').textContent = score;
+        document.getElementById('bestDisplay').textContent = bestScore;
+        document.getElementById('coinDisplay').textContent = coinBank;
+        document.getElementById('stageDisplay').textContent = stage;
+        const hearts = '❤️'.repeat(Math.max(0, lives)) + '🖤'.repeat(Math.max(0, 3 - lives));
+        document.getElementById('livesDisplay').textContent = hearts;
+    }
+
+    let toastTimeout = null;
+    function showToast(text) {
+        const el = document.getElementById('toastMsg');
+        el.textContent = text;
+        el.classList.add('show');
+        clearTimeout(toastTimeout);
+        toastTimeout = setTimeout(() => el.classList.remove('show'), 1800);
+    }
+
+    function triggerDamage(reason) {
+        if (invulnTimer > 0 || isGameOver || isStageTransition) return;
+        const map = getCurrentMap();
+
+        if (reason === 'water') {
+            sound.playSplash();
+            const splashCol = map.id === 'volcano' ? 0xff5722 : 0x4fc3f7;
+            spawnParticles(player.worldX, 0.1, player.worldZ, splashCol, 22, 4.2);
+        } else {
+            sound.playCrash();
+            spawnParticles(player.worldX, 0.4, player.worldZ, 0xff5252, 22, 4.5);
+        }
+
+        lives--;
+        updateHUD();
+
+        if (lives <= 0) {
+            isGameOver = true;
+            const modalEmoji = document.getElementById('modalEmoji');
+            const modalTitle = document.getElementById('modalTitle');
+            const modalSub = document.getElementById('modalSub');
+            if (reason === 'water') {
+                modalEmoji.textContent = map.id === 'volcano' ? '🔥' : '💦';
+                modalTitle.textContent = map.id === 'volcano' ? 'SCORCHED!' : 'SPLASHED!';
+                modalSub.textContent = map.id === 'volcano'
+                    ? 'Hop onto the floating basalt slabs to cross the lava!'
+                    : 'Hop onto the floating rafts to cross the river!';
+            } else {
+                modalEmoji.textContent = '💥';
+                modalTitle.textContent = 'SQUASHED!';
+                modalSub.textContent = 'Watch both lanes before hopping across!';
+            }
+            document.getElementById('modalScore').textContent = score;
+            document.getElementById('modalBest').textContent = bestScore;
+            document.getElementById('modalCoins').textContent = coinBank;
+            document.getElementById('gameOverlay').classList.add('visible');
+        } else {
+            invulnTimer = 1.4;
+            respawnPlayerAtStart();
+            const hazardText = reason === 'water'
+                ? (map.id === 'volcano' ? '🔥 Fell in lava! -1 ❤️' : '💦 Fell in river! -1 ❤️')
+                : '💥 Hit by traffic! -1 ❤️';
+            showToast(hazardText);
+        }
+    }
+
+    function triggerStageClear() {
+        if (isStageTransition) return;
+        isStageTransition = true;
+        sound.playGoal();
+        const bonus = 100 + stage * 25;
+        const coinBonus = 5;
+        addScore(bonus);
+        addCoins(coinBonus);
+        spawnParticles(player.worldX, 0.8, player.worldZ, 0xffd54f, 30, 5.0);
+        spawnParticles(player.worldX, 0.8, player.worldZ, 0x69f0ae, 20, 4.5);
+        showToast(`🏁 Stage ${stage} Clear! +${bonus} pts & +${coinBonus} 🪙`);
+
+        setTimeout(() => {
+            stage++;
+            maxRowReached = 0;
+            buildStage(stage);
+            respawnPlayerAtStart();
+            updateHUD();
+            isStageTransition = false;
+        }, 1100);
+    }
+
+    function resetFullGame() {
+        document.getElementById('gameOverlay').classList.remove('visible');
+        score = 0;
+        stage = 1;
+        lives = 3;
+        maxRowReached = 0;
+        isGameOver = false;
+        isStageTransition = false;
+        invulnTimer = 0;
+        buildStage(stage);
+        respawnPlayerAtStart();
+        updateHUD();
+    }
+
+    // =========================================================================
+    // 11. SIMULATION UPDATE LOOP
+    // =========================================================================
+    let sparkleTimer = 0;
+    function update(dt) {
+        if (invulnTimer > 0) invulnTimer = Math.max(0, invulnTimer - dt);
+
+        const time = performance.now() * 0.003;
+        const minWrap = -PLAY_HALF_COLS - 3;
+        const maxWrap = PLAY_HALF_COLS + 3;
+
+        // Ambient trail effects for special unlocked characters
+        const activeChar = CHARACTERS.find(c => c.id === selectedCharId) || CHARACTERS[0];
+        if (player.mesh && !isGameOver && ['royal', 'rainbow', 'fire', 'ecto', 'exhaust'].includes(activeChar.trail)) {
+            sparkleTimer += dt;
+            if (sparkleTimer > 0.20) {
+                sparkleTimer = 0;
+                spawnCharacterTrailParticles(
+                    activeChar,
+                    player.worldX + (Math.random() - 0.5) * 0.45,
+                    player.worldZ + (Math.random() - 0.5) * 0.45,
+                    false
+                );
+            }
+        }
+
+        lanes.forEach(lane => {
+            if (!lane) return;
+
+            if (lane.coin && !lane.coin.collected) {
+                lane.coin.mesh.rotation.y = time * 1.4;
+                lane.coin.mesh.position.y = Math.sin(time * 2) * 0.08;
+            }
+
+            if (lane.type === 'road') {
+                lane.vehicles.forEach(v => {
+                    v.gridX += lane.dir * lane.speed * dt;
+                    if (lane.dir > 0 && v.gridX > maxWrap) v.gridX -= lane.span;
+                    if (lane.dir < 0 && v.gridX < minWrap) v.gridX += lane.span;
+                    v.mesh.position.x = v.gridX * TILE_SIZE;
+                });
+            } else if (lane.type === 'river') {
+                lane.logs.forEach(l => {
+                    l.gridX += lane.dir * lane.speed * dt;
+                    if (lane.dir > 0 && l.gridX > maxWrap) l.gridX -= lane.span;
+                    if (lane.dir < 0 && l.gridX < minWrap) l.gridX += lane.span;
+                    l.mesh.position.x = l.gridX * TILE_SIZE;
+                });
+            }
+        });
+
+        if (player.mesh && !isGameOver) {
+            const limbs = player.mesh.userData.limbs || [];
+            if (player.hopProgress < 1) {
+                player.hopProgress = Math.min(1, player.hopProgress + dt / player.hopDuration);
+                const t = player.hopProgress;
+                player.worldX = player.startX + (player.targetX - player.startX) * t;
+                player.worldZ = player.startZ + (player.targetZ - player.startZ) * t;
+
+                const jumpY = Math.sin(t * Math.PI) * 0.65;
+                player.mesh.position.set(player.worldX, jumpY, player.worldZ);
+
+                const stretchY = 1 + Math.sin(t * Math.PI) * 0.25;
+                const squashXZ = 1 - Math.sin(t * Math.PI) * 0.12;
+                player.mesh.scale.set(squashXZ, stretchY, squashXZ);
+
+                // Kick feet alternating forward/backward mid-hop
+                const kickAngle = Math.sin(t * Math.PI) * 0.75 * hopStepParity;
+                limbs.forEach(l => {
+                    l.pivot.rotation.x = kickAngle * l.side;
+                });
+            } else {
+                const isFloaty = activeChar.id === 'ghost' || activeChar.id === 'unicorn';
+                const idleBob = isFloaty
+                    ? 0.08 + Math.sin(time * 1.8) * 0.06
+                    : Math.abs(Math.sin(time * 2.2)) * 0.05;
+                player.mesh.position.set(player.worldX, idleBob, player.worldZ);
+                if (!isFloaty) {
+                    player.mesh.scale.set(1 + idleBob * 0.4, 1 - idleBob * 0.4, 1 + idleBob * 0.4);
+                } else {
+                    player.mesh.scale.set(1, 1, 1);
+                }
+                limbs.forEach(l => {
+                    l.pivot.rotation.x *= 0.8;
+                });
+            }
+
+            let angleDiff = player.facingAngle - player.mesh.rotation.y;
+            while (angleDiff > Math.PI) angleDiff -= Math.PI * 2;
+            while (angleDiff < -Math.PI) angleDiff += Math.PI * 2;
+            player.mesh.rotation.y += angleDiff * Math.min(1, dt * 18);
+
+            player.mesh.visible = invulnTimer > 0 ? Math.floor(invulnTimer * 16) % 2 === 0 : true;
+
+            const currentLane = lanes[player.gridZ];
+            if (currentLane && !isStageTransition) {
+                const playerColFloat = player.worldX / TILE_SIZE;
+
+                if (currentLane.coin && !currentLane.coin.collected) {
+                    if (Math.abs(playerColFloat - currentLane.coin.col) < 0.6) {
+                        currentLane.coin.collected = true;
+                        currentLane.coin.mesh.visible = false;
+                        sound.playCoin();
+                        addScore(25);
+                        addCoins(1);
+                        spawnParticles(player.worldX, 0.5, player.worldZ, 0xffd700, 14, 3.0);
+                        showToast('🪙 +1 Coin & +25 pts!');
+                    }
+                }
+
+                if (currentLane.type === 'road') {
+                    for (const v of currentLane.vehicles) {
+                        if (Math.abs(playerColFloat - v.gridX) < (v.halfWidth + 0.28)) {
+                            triggerDamage('car');
+                            break;
+                        }
+                    }
+                }
+
+                if (currentLane.type === 'river' && player.hopProgress >= 0.92) {
+                    let onLog = false;
+                    for (const l of currentLane.logs) {
+                        if (Math.abs(playerColFloat - l.gridX) <= (l.halfWidth + 0.12)) {
+                            onLog = true;
+                            const drift = currentLane.dir * currentLane.speed * TILE_SIZE * dt;
+                            player.worldX += drift;
+                            player.targetX += drift;
+                            player.mesh.position.x = player.worldX;
+                            player.mesh.position.y = 0.08;
+                            break;
+                        }
+                    }
+                    if (!onLog) {
+                        triggerDamage('water');
+                    } else if (Math.abs(player.worldX / TILE_SIZE) > PLAY_HALF_COLS + 0.6) {
+                        triggerDamage('water');
+                    }
+                }
+
+                if (currentLane.type === 'goal' && player.hopProgress >= 0.95) {
+                    triggerStageClear();
+                }
+            }
+        }
+
+        const desiredCamX = player.worldX * 0.55 + camOffset.x;
+        const desiredCamY = camOffset.y;
+        const desiredCamZ = player.worldZ + camOffset.z;
+
+        camera.position.x += (desiredCamX - camera.position.x) * Math.min(1, dt * 5.5);
+        camera.position.y += (desiredCamY - camera.position.y) * Math.min(1, dt * 5.5);
+        camera.position.z += (desiredCamZ - camera.position.z) * Math.min(1, dt * 5.5);
+
+        camera.lookAt(
+            player.worldX * 0.45 + camLookOffset.x,
+            camLookOffset.y,
+            player.worldZ + camLookOffset.z
+        );
+
+        dirLight.position.set(player.worldX + 12, 22, player.worldZ + 14);
+        dirLight.target.position.set(player.worldX, 0, player.worldZ);
+        dirLight.target.updateMatrixWorld();
+
+        updateParticles(dt);
+    }
+
+    // =========================================================================
+    // 12. INPUT HANDLERS & INITIALIZATION
+    // =========================================================================
+    window.addEventListener('keydown', (e) => {
+        const k = e.key.toLowerCase();
+        if (['arrowup', 'arrowdown', 'arrowleft', 'arrowright', ' '].includes(k)) {
+            e.preventDefault();
+        }
+        if (k === 'escape' && isGalleryOpen) {
+            closeGallery();
+            return;
+        }
+        if (isGalleryOpen) return;
+        if (isGameOver && (k === 'enter' || k === ' ')) {
+            resetFullGame();
+            return;
+        }
+        if (k === 'arrowup' || k === 'w') tryMove('up');
+        else if (k === 'arrowdown' || k === 's') tryMove('down');
+        else if (k === 'arrowleft' || k === 'a') tryMove('left');
+        else if (k === 'arrowright' || k === 'd') tryMove('right');
+    });
+
+    let touchStartX = 0;
+    let touchStartY = 0;
+    let touchActive = false;
+
+    canvas.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        if (e.touches.length > 0) {
+            touchStartX = e.touches[0].clientX;
+            touchStartY = e.touches[0].clientY;
+            touchActive = true;
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', (e) => {
+        e.preventDefault();
+        if (!touchActive || e.changedTouches.length === 0) return;
+        touchActive = false;
+
+        const dx = e.changedTouches[0].clientX - touchStartX;
+        const dy = e.changedTouches[0].clientY - touchStartY;
+        const dist = Math.hypot(dx, dy);
+
+        if (dist < 18) {
+            tryMove('up');
+            return;
+        }
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            tryMove(dx > 0 ? 'right' : 'left');
+        } else {
+            tryMove(dy > 0 ? 'down' : 'up');
+        }
+    }, { passive: false });
+
+    canvas.addEventListener('click', () => {
+        tryMove('up');
+    });
+
+    document.getElementById('restartButton').addEventListener('click', (e) => {
+        e.stopPropagation();
+        sound.init();
+        resetFullGame();
+    });
+
+    document.getElementById('modalActionBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        sound.init();
+        resetFullGame();
+    });
+
+    document.getElementById('muteButton').addEventListener('click', (e) => {
+        e.stopPropagation();
+        const muted = sound.toggleMute();
+        e.currentTarget.textContent = muted ? '🔇' : '🔊';
+    });
+
+    document.getElementById('openGalleryBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        openGallery();
+    });
+
+    document.getElementById('closeGalleryBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        closeGallery();
+    });
+
+    document.getElementById('galleryOverlay').addEventListener('click', (e) => {
+        if (e.target === e.currentTarget) closeGallery();
+    });
+
+    document.getElementById('prevCharBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        cycleUnlockedCharacter(-1);
+    });
+
+    document.getElementById('nextCharBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        cycleUnlockedCharacter(1);
+    });
+
+    document.getElementById('previewActionBtn').addEventListener('click', (e) => {
+        e.stopPropagation();
+        sound.init();
+        const ch = CHARACTERS.find(c => c.id === inspectedCharId) || CHARACTERS[0];
+        if (unlockedChars.has(ch.id)) {
+            sound.playHop(ch.pitch);
+            setPlayerCharacter(ch.id);
+            closeGallery();
+        } else if (coinBank >= ch.cost) {
+            coinBank -= ch.cost;
+            saveCoins();
+            unlockedChars.add(ch.id);
+            saveUnlocks();
+            updateHUD();
+            sound.playUnlock();
+            setPlayerCharacter(ch.id);
+            if (player.mesh) {
+                spawnParticles(player.worldX, 0.7, player.worldZ, 0xffd700, 28, 4.8);
+                spawnParticles(player.worldX, 0.7, player.worldZ, 0x69f0ae, 18, 4.0);
+            }
+            showToast(`🎉 Unlocked ${ch.emoji} ${ch.name}!`);
+        } else {
+            const needed = ch.cost - coinBank;
+            sound.playError();
+            const btn = e.currentTarget;
+            btn.classList.remove('shake');
+            void btn.offsetWidth;
+            btn.classList.add('shake');
+            showToast(`🔒 Need ${needed} more 🪙 coins for ${ch.name}!`);
+        }
+    });
+
+    window.addEventListener('resize', () => {
+        camera.aspect = window.innerWidth / window.innerHeight;
+        camera.updateProjectionMatrix();
+        renderer.setSize(window.innerWidth, window.innerHeight);
+    });
+
+    let lastTime = performance.now();
+    function animate(now) {
+        requestAnimationFrame(animate);
+        const dt = Math.min(0.05, (now - lastTime) / 1000);
+        lastTime = now;
+        update(dt);
+        renderer.render(scene, camera);
+
+        if (isGalleryOpen && ttModel) {
+            ttModel.rotation.y += dt * 1.4;
+            ttModel.position.y = Math.abs(Math.sin(now * 0.005)) * 0.14;
+            ttRenderer.render(ttScene, ttCamera);
+        }
+    }
+
+    window.onload = function() {
+        initMapSwitcher();
+        setPlayerCharacter(selectedCharId);
+        resetFullGame();
+        lastTime = performance.now();
+        animate(lastTime);
+    };
+})();
+</script>
+</body>
+</html>
