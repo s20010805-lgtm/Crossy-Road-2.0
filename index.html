@@ -1841,17 +1841,17 @@
                 }
 
                 const dir = (r % 2 === 0) ? 1 : -1;
-                const speed = (1.55 + Math.random() * 1.45) * speedScale;
-                const span = (PLAY_HALF_COLS + 3) * 2;
-                const count = Math.min(4, 2 + Math.floor(Math.random() * 2));
+                const speed = (1.65 + Math.random() * 1.35) * speedScale;
+                const span = (TOTAL_HALF_COLS + 3) * 2;
+                const count = 6;
                 const spacing = span / count;
-                const startOffset = Math.random() * span;
+                const startOffset = Math.random() * spacing;
                 const vehicles = [];
 
                 for (let i = 0; i < count; i++) {
                     const spec = map.vehicles[Math.floor(Math.random() * map.vehicles.length)];
                     const mesh = buildVehicleMesh(spec, dir);
-                    const gridX = -PLAY_HALF_COLS - 3 + ((startOffset + i * spacing) % span);
+                    const gridX = -TOTAL_HALF_COLS - 3 + ((startOffset + i * spacing) % span);
                     mesh.position.set(gridX * TILE_SIZE, 0, zPos);
                     worldGroup.add(mesh);
                     vehicles.push({
@@ -1868,17 +1868,17 @@
 
                 const prevLane = lanes[r - 1];
                 const dir = (prevLane && prevLane.type === 'river') ? -prevLane.dir : ((r % 2 === 0) ? 1 : -1);
-                const speed = (1.25 + Math.random() * 1.15) * speedScale;
-                const span = (PLAY_HALF_COLS + 3) * 2;
-                const count = 3;
+                const speed = (1.35 + Math.random() * 1.05) * speedScale;
+                const span = (TOTAL_HALF_COLS + 3) * 2;
+                const count = 6;
                 const spacing = span / count;
-                const startOffset = Math.random() * span;
+                const startOffset = Math.random() * spacing;
                 const logs = [];
 
                 for (let i = 0; i < count; i++) {
                     const lenTiles = 2 + Math.floor(Math.random() * 2);
                     const mesh = buildRaftMesh(lenTiles, map);
-                    const gridX = -PLAY_HALF_COLS - 3 + ((startOffset + i * spacing) % span);
+                    const gridX = -TOTAL_HALF_COLS - 3 + ((startOffset + i * spacing) % span);
                     mesh.position.set(gridX * TILE_SIZE, 0, zPos);
                     worldGroup.add(mesh);
                     logs.push({
@@ -2322,8 +2322,8 @@
         if (invulnTimer > 0) invulnTimer = Math.max(0, invulnTimer - dt);
 
         const time = performance.now() * 0.003;
-        const minWrap = -PLAY_HALF_COLS - 3;
-        const maxWrap = PLAY_HALF_COLS + 3;
+        const minWrap = -TOTAL_HALF_COLS - 3;
+        const maxWrap = TOTAL_HALF_COLS + 3;
 
         // Ambient trail effects for special unlocked characters
         const activeChar = CHARACTERS.find(c => c.id === selectedCharId) || CHARACTERS[0];
